@@ -8,6 +8,7 @@ import { SearchOverlay } from './components/SearchOverlay';
 import { Tweaks } from './components/Tweaks';
 import { Article } from './pages/Article';
 import { BlogList } from './pages/BlogList';
+import { Forum } from './pages/Forum';
 import { Vakitler } from './pages/Vakitler';
 
 function Site() {
@@ -18,6 +19,7 @@ function Site() {
       <Routes>
         <Route path="/" element={<BlogList />} />
         <Route path="/yazi/:slug" element={<Article />} />
+        <Route path="/forum" element={<Forum />} />
         <Route path="/vakitler" element={<Vakitler />} />
         <Route path="*" element={<BlogList />} />
       </Routes>

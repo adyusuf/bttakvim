@@ -1,9 +1,11 @@
 import { CaretRight, Clock, FacebookLogo, Feather, LinkSimple, WhatsappLogo, XLogo } from '@phosphor-icons/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Comments } from '../components/Comments';
 import { DEMO_MAPS, InteractiveMap } from '../components/InteractiveMap';
 import { Kapak, catColor } from '../components/Kapak';
 import { LeafAside } from '../components/LeafAside';
+import { ReactionBar } from '../components/ReactionBar';
 import { fetchBlogPost, fetchBlogPosts } from '../lib/api';
 import { formatLongDate } from '../lib/dates';
 import type { BlogPost, BlogPostRef } from '../lib/types';
@@ -117,6 +119,13 @@ export function Article() {
               <div className="web-author">BTTakvim Kültür Servisi</div>
               <p>Yaprak takviminin ardındaki tarih, gelenek ve kültür hikâyelerini derleyen yazı kurulu.</p>
             </div>
+          </div>
+
+          <div style={{ margin: '24px 0' }}>
+            <ReactionBar targetType="BlogPost" targetId={post.id} shareTitle={post.title} />
+          </div>
+          <div style={{ borderTop: '1px solid var(--rule)', paddingTop: 22, marginTop: 8 }}>
+            <Comments targetType="BlogPost" targetId={post.id} />
           </div>
         </div>
 

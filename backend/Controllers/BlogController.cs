@@ -48,6 +48,7 @@ public class BlogController(AppDbContext db) : ControllerBase
 
         return Ok(new
         {
+            post.Id,
             post.Slug,
             post.Title,
             post.Summary,

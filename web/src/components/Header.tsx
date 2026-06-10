@@ -31,6 +31,7 @@ export function Header({ onSearch }: { onSearch: () => void }) {
               {k.name}
             </button>
           ))}
+          <Link className={'web-nav-link' + (loc.pathname === '/forum' ? ' on' : '')} to="/forum">Forum</Link>
           <Link className={'web-nav-link' + (loc.pathname === '/vakitler' ? ' on' : '')} to="/vakitler">Namaz Vakitleri</Link>
         </nav>
         <div className="web-header-tools">

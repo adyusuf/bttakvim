@@ -5,6 +5,7 @@ import App from './App';
 import { StoreProvider } from './lib/store';
 import './styles/tokens.css';
 import './styles/web.css';
+import './styles/social.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
