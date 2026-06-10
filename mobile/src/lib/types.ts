@@ -98,6 +98,47 @@ export interface CityRef {
   name: string;
 }
 
+export type TargetType = 'Leaf' | 'BlogPost' | 'ForumTopic' | 'Comment' | 'ContentItem';
+export type ReactionKind = 'Like' | 'Save' | 'Report';
+
+export interface Comment {
+  id: number;
+  parentId: number | null;
+  authorName: string;
+  body: string;
+  likes: number;
+  createdAtUtc: string;
+  replies: Comment[];
+}
+
+export interface ReactionStatus {
+  likes: number;
+  saves: number;
+  reports: number;
+  myLike: boolean;
+  mySave: boolean;
+}
+
+export interface ForumTopicRef {
+  id: number;
+  title: string;
+  body: string;
+  authorName: string;
+  isLocked: boolean;
+  createdAtUtc: string;
+  commentCount: number;
+  likeCount: number;
+}
+
+export interface ForumTopic {
+  id: number;
+  title: string;
+  body: string;
+  authorName: string;
+  isLocked: boolean;
+  createdAtUtc: string;
+}
+
 export interface BlogPostRef {
   slug: string;
   title: string;
@@ -110,6 +151,7 @@ export interface BlogPostRef {
 }
 
 export interface BlogPost extends BlogPostRef {
+  id: number;
   body: string;
 }
 

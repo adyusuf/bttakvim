@@ -7,7 +7,6 @@ import {
   Clock,
   MagnifyingGlass,
   MapTrifold,
-  ShareNetwork,
   UserFocus,
 } from 'phosphor-react-native';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -15,7 +14,6 @@ import {
   ActivityIndicator,
   Image,
   ScrollView,
-  Share,
   Text,
   TextInput,
   TouchableOpacity,
@@ -23,7 +21,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Label } from '@/components/bits';
+import { Comments } from '@/components/comments';
 import { DEMO_MAPS, InteractiveMap } from '@/components/interactive-map';
+import { ReactionBar } from '@/components/reaction-bar';
 import { fetchBlogCategories, fetchBlogPost, fetchBlogPosts } from '@/lib/api';
 import { fonts, useTheme, type ThemeColors } from '@/lib/theme';
 import type { BlogCategoryRef, BlogPost, BlogPostRef } from '@/lib/types';
@@ -229,21 +229,12 @@ function ArticleView({ slug, onBack }: { slug: string; onBack: () => void }) {
 
           {harita ? <InteractiveMap harita={harita} /> : null}
 
-          <TouchableOpacity
-            onPress={() => Share.share({ message: `${post.title} — BTTakvim` })}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              paddingVertical: 14,
-              borderTopWidth: 1,
-              borderTopColor: colors.rule,
-              marginTop: 4,
-            }}>
-            <ShareNetwork size={19} color={colors.ink1} />
-            <Text style={{ fontFamily: fonts.sansSemi, fontSize: 12, color: colors.ink1 }}>Paylaş</Text>
-          </TouchableOpacity>
+          <View style={{ borderTopWidth: 1, borderTopColor: colors.rule, paddingTop: 16, marginTop: 4 }}>
+            <ReactionBar targetType="BlogPost" targetId={post.id} shareMessage={`${post.title} — BTTakvim`} />
+          </View>
+          <View style={{ borderTopWidth: 1, borderTopColor: colors.rule, paddingTop: 18, marginTop: 18 }}>
+            <Comments targetType="BlogPost" targetId={post.id} />
+          </View>
         </View>
       </View>
     </ScrollView>

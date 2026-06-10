@@ -10,6 +10,8 @@ import {
   Scroll as ScrollIcon,
 } from 'phosphor-react-native';
 import { Label, Ornament, SectionHead } from '@/components/bits';
+import { Comments } from '@/components/comments';
+import { ReactionBar } from '@/components/reaction-bar';
 import { fonts, useTheme } from '@/lib/theme';
 import type { Leaf, LeafContent } from '@/lib/types';
 
@@ -201,6 +203,17 @@ export function LeafBack({ leaf }: { leaf: Leaf }) {
         {tarih} — {titleCase(leaf.weekdayName)} — {leaf.hijri.day} {leaf.hijri.monthName} {leaf.hijri.year} —{' '}
         {leaf.seasonal.day} {leaf.seasonal.label} Günleri
       </Text>
+
+      {leaf.id > 0 ? (
+        <>
+          <View style={{ marginTop: 18 }}>
+            <ReactionBar targetType="Leaf" targetId={leaf.id} shareMessage={`${tarih} — BTTakvim yaprağı`} />
+          </View>
+          <View style={{ borderTopWidth: 1, borderTopColor: colors.rule, paddingTop: 16, marginTop: 16 }}>
+            <Comments targetType="Leaf" targetId={leaf.id} />
+          </View>
+        </>
+      ) : null}
     </ScrollView>
   );
 }

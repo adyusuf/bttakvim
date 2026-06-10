@@ -26,6 +26,7 @@ import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
   CalendarDots,
+  ChatsCircle,
   Compass,
   DotsThreeCircle,
   Mosque,
@@ -138,6 +139,15 @@ export default function RootLayout() {
               title: 'Keşfet',
               tabBarIcon: ({ color, focused }) => (
                 <Compass size={23} color={String(color)} weight={focused ? 'fill' : 'regular'} />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="forum"
+            options={{
+              title: 'Forum',
+              tabBarIcon: ({ color, focused }) => (
+                <ChatsCircle size={23} color={String(color)} weight={focused ? 'fill' : 'regular'} />
               ),
             }}
           />

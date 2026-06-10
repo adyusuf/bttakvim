@@ -1,7 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { MOCK_CITIES, mockLeaf, mockPrayerTimes } from './mock';
-import type { BlogCategoryRef, BlogPost, BlogPostRef, CityRef, Leaf, PrayerTimes } from './types';
+import type {
+  BlogCategoryRef, BlogPost, BlogPostRef, CityRef, Comment, ForumTopic, ForumTopicRef,
+  Leaf, PrayerTimes, ReactionKind, ReactionStatus, TargetType,
+} from './types';
 
 /**
  * API adresi: EXPO_PUBLIC_API_URL verilmişse o; yoksa Metro'nun çalıştığı
@@ -25,6 +28,28 @@ async function get<T>(path: string, timeoutMs = 6000): Promise<T> {
     const res = await fetch(`${API_BASE}${path}`, { signal: controller.signal });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return (await res.json()) as T;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function post<T>(path: string, body: unknown, timeoutMs = 6000): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      let msg = `HTTP ${res.status}`;
+      try { const j = await res.json(); if (j?.error) msg = j.error; } catch { /* yoksay */ }
+      throw new Error(msg);
+    }
+    const text = await res.text();
+    return (text ? JSON.parse(text) : undefined) as T;
   } finally {
     clearTimeout(timer);
   }
@@ -96,18 +121,56 @@ export async function fetchBlogPost(slug: string): Promise<BlogPost | null> {
   }
 }
 
+// ---- Yorumlar ----
+
+export const fetchComments = (targetType: TargetType, targetId: number) =>
+  get<Comment[]>(`/api/comments?targetType=${targetType}&targetId=${targetId}`);
+
+export const postComment = (body: {
+  targetType: TargetType; targetId: number; parentId?: number | null;
+  authorName: string; deviceKey: string; body: string;
+}) => post<Comment>('/api/comments', body);
+
+// ---- Tepkiler ----
+
+export const toggleReaction = (
+  targetType: TargetType, targetId: number, kind: ReactionKind, deviceKey: string,
+) => post<{ active: boolean; count: number }>('/api/reactions/toggle', { targetType, targetId, kind, deviceKey });
+
+export const fetchReactionStatus = (targetType: TargetType, targetId: number, deviceKey: string) =>
+  get<ReactionStatus>(`/api/reactions/status?targetType=${targetType}&targetId=${targetId}&deviceKey=${encodeURIComponent(deviceKey)}`);
+
+// ---- Forum ----
+
+export const fetchForumTopics = () => get<ForumTopicRef[]>('/api/forum/topics');
+export const fetchForumTopic = (id: number) => get<ForumTopic>(`/api/forum/topics/${id}`);
+export const createForumTopic = (body: { title: string; body: string; authorName: string; deviceKey: string }) =>
+  post<{ id: number }>('/api/forum/topics', body);
+
 // ---- Cihaz kimliği (beğeni/kaydet/yorum için anonim anahtar) ----
 
 const DEVICE_KEY_STORAGE = 'bttakvim:device-key';
 
-export async function getDeviceKey(): Promise<string> {
-  let key = await AsyncStorage.getItem(DEVICE_KEY_STORAGE);
-  if (!key) {
-    key = `dev-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
-    await AsyncStorage.setItem(DEVICE_KEY_STORAGE, key);
-  }
-  return key;
+// Tek uçuş (in-flight) söz: birden çok bileşen aynı anda çağırınca aynı anahtarı alsın.
+let deviceKeyPromise: Promise<string> | null = null;
+
+export function getDeviceKey(): Promise<string> {
+  deviceKeyPromise ??= (async () => {
+    let key = await AsyncStorage.getItem(DEVICE_KEY_STORAGE);
+    if (!key) {
+      key = `dev-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+      await AsyncStorage.setItem(DEVICE_KEY_STORAGE, key);
+    }
+    return key;
+  })();
+  return deviceKeyPromise;
 }
+
+// ---- Yazar adı (yorum için, hatırlanır) ----
+
+const AUTHOR_STORAGE = 'bttakvim:author';
+export const getSavedAuthor = () => AsyncStorage.getItem(AUTHOR_STORAGE);
+export const saveAuthor = (name: string) => AsyncStorage.setItem(AUTHOR_STORAGE, name);
 
 // ---- Şehir tercihi ----
 
