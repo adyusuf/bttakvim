@@ -1,7 +1,7 @@
 # BTTakvim — Google Play Yayın Rehberi
 
 Bu doküman, imzalı AAB üretip Play Console'a göndermek için izlenecek adımları içerir.
-Uygulama Console'da tanımlı: `com.bttakvim.app`.
+Uygulama Console'da tanımlı: `com.btsoft.bttakvim`.
 
 ## 0. Ön koşul: backend yayında olmalı
 Mobil uygulama üretim derlemesinde **`https://testapi.batitrakyatakvimi.com`** adresine bağlanır

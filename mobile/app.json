@@ -10,11 +10,11 @@
     "primaryColor": "#A3271D",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.bttakvim.app",
+      "bundleIdentifier": "com.btsoft.bttakvim",
       "supportsTablet": true
     },
     "android": {
-      "package": "com.bttakvim.app",
+      "package": "com.btsoft.bttakvim",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
