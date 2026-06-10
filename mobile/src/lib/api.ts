@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { MOCK_CITIES, mockLeaf, mockPrayerTimes } from './mock';
-import type { CityRef, Leaf, PrayerTimes } from './types';
+import type { BlogCategoryRef, BlogPost, BlogPostRef, CityRef, Leaf, PrayerTimes } from './types';
 
 /**
  * API adresi: EXPO_PUBLIC_API_URL verilmişse o; yoksa Metro'nun çalıştığı
@@ -66,6 +66,33 @@ export async function fetchCities(): Promise<CityRef[]> {
     return await get<CityRef[]>('/api/prayer-times/cities');
   } catch {
     return MOCK_CITIES;
+  }
+}
+
+// ---- Blog ----
+
+export async function fetchBlogPosts(category?: string): Promise<BlogPostRef[]> {
+  try {
+    const qs = category ? `?category=${encodeURIComponent(category)}` : '';
+    return await get<BlogPostRef[]>(`/api/blog${qs}`);
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchBlogCategories(): Promise<BlogCategoryRef[]> {
+  try {
+    return await get<BlogCategoryRef[]>('/api/blog/categories');
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchBlogPost(slug: string): Promise<BlogPost | null> {
+  try {
+    return await get<BlogPost>(`/api/blog/${slug}`);
+  } catch {
+    return null;
   }
 }
 

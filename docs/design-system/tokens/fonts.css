@@ -1,0 +1,6 @@
+/* BTTakvim webfonts — sourced from Google Fonts CDN.
+   Bitter  : slab-serif for big almanac date numerals & display headings
+   Lora    : old-style serif for editorial body (leaf text, blog, recipes)
+   Hanken Grotesk : neutral humanist sans for UI micro-labels & chrome
+   All three carry full Turkish (latin-ext) glyph coverage: ğ ş ı İ ç ö ü. */
+@import url('https://fonts.googleapis.com/css2?family=Bitter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Amiri:ital,wght@0,400;0,700;1,400;1,700&display=swap');

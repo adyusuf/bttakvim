@@ -1,0 +1,27 @@
+/* BTTakvim — Elevation, shadow & texture tokens */
+:root {
+  /* Shadows — warm, soft; the leaf casts a gentle paper shadow */
+  --shadow-sm:    0 1px 2px rgba(33,26,18,.07);
+  --shadow-leaf:  0 1px 0 rgba(255,255,255,.6) inset,
+                  0 10px 30px -12px rgba(33,26,18,.35),
+                  0 2px 6px -2px rgba(33,26,18,.18);
+  --shadow-card:  0 1px 2px rgba(33,26,18,.06),
+                  0 6px 18px -10px rgba(33,26,18,.25);
+  --shadow-pop:   0 14px 40px -12px rgba(33,26,18,.40);
+  --shadow-press: 0 1px 2px rgba(33,26,18,.18) inset;
+
+  /* Focus ring */
+  --ring: 0 0 0 3px var(--gold-100), 0 0 0 4.5px var(--gold-500);
+
+  /* Motion */
+  --ease-out: cubic-bezier(.2,.7,.3,1);     /* @kind other */
+  --ease-in-out: cubic-bezier(.5,0,.2,1);   /* @kind other */
+  --dur-fast: 140ms;   /* @kind other */
+  --dur: 240ms;        /* @kind other */
+  --dur-flip: 620ms;   /* @kind other */
+
+  /* Paper texture — subtle warm grain via layered gradients */
+  --paper-grain:
+    radial-gradient(circle at 20% 12%, rgba(182,137,44,.05), transparent 38%),
+    radial-gradient(circle at 82% 78%, rgba(30,58,95,.04), transparent 42%);   /* @kind other */
+}

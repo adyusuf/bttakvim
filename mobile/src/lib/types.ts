@@ -86,6 +86,9 @@ export interface PrayerTimes {
   dayLength: string;
   nightLength: string;
   dayLengthDeltaMinutes: number;
+  dayLengthDeltaSeconds: number;
+  dayLengthDeltaText: string;
+  dayFraction: number;
   qiblaTime: string;
   source: string;
 }
@@ -93,4 +96,38 @@ export interface PrayerTimes {
 export interface CityRef {
   slug: string;
   name: string;
+}
+
+export interface BlogPostRef {
+  slug: string;
+  title: string;
+  summary: string;
+  categorySlug: string;
+  categoryName: string;
+  coverImageUrl?: string | null;
+  publishedAtUtc: string;
+  readingMinutes: number;
+}
+
+export interface BlogPost extends BlogPostRef {
+  body: string;
+}
+
+export interface BlogCategoryRef {
+  slug: string;
+  name: string;
+}
+
+export interface MapPoint {
+  x: number;
+  y: number;
+  ad: string;
+  not: string;
+}
+
+export interface MapData {
+  baslik: string;
+  altyazi: string;
+  noktalar: MapPoint[];
+  rota: number[];
 }

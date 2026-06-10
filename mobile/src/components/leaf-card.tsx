@@ -1,201 +1,226 @@
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { fromIso, monthGrid, TURKISH_DAYS_SHORT } from '@/lib/dates';
-import { colors } from '@/lib/theme';
-import type { Leaf } from '@/lib/types';
+/** Çevrilebilir yaprak — 3B rotateY + altın köşebent çerçeve (Tweaks: çerçeve/kubbe/madalyon). */
+import React, { useEffect, useRef } from 'react';
+import { Animated, Easing, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ArrowClockwise, ArrowCounterClockwise } from 'phosphor-react-native';
+import { fonts, useTheme } from '@/lib/theme';
 
-interface Props {
-  leaf: Leaf;
-  onSelectDay?: (dayOfMonth: number) => void;
+const FLIP_MS = 620;
+const EASE = Easing.bezier(0.22, 0.61, 0.36, 1);
+
+function FrameOverlay() {
+  const { colors, prefs } = useTheme();
+  if (prefs.frame === 'sade') return null;
+
+  const domeTop = prefs.dome ? 42 : undefined;
+  if (prefs.frame === 'cizgi') {
+    return (
+      <View
+        pointerEvents="none"
+        style={[
+          styles.frame,
+          {
+            borderColor: colors.ruleStrong,
+            borderWidth: 1,
+            borderTopLeftRadius: domeTop ?? 11,
+            borderTopRightRadius: domeTop ?? 11,
+          },
+        ]}
+      />
+    );
+  }
+
+  // Altın çift cetvel + köşe medalyon noktaları
+  const dot = (pos: object) => (
+    <View
+      key={JSON.stringify(pos)}
+      style={[{ position: 'absolute', width: 4, height: 4, borderRadius: 2, backgroundColor: colors.gold0 }, pos]}
+    />
+  );
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <View
+        style={[
+          styles.frame,
+          {
+            borderColor: colors.gold0,
+            borderWidth: 1.5,
+            borderTopLeftRadius: domeTop ?? 12,
+            borderTopRightRadius: domeTop ?? 12,
+          },
+        ]}
+      />
+      <View
+        style={[
+          styles.frameInner,
+          {
+            borderColor: colors.gold2,
+            borderWidth: 1,
+            borderTopLeftRadius: domeTop ? domeTop - 4 : 9,
+            borderTopRightRadius: domeTop ? domeTop - 4 : 9,
+          },
+        ]}
+      />
+      {dot({ top: 9, left: 9 })}
+      {dot({ top: 9, right: 9 })}
+      {dot({ bottom: 9, left: 9 })}
+      {dot({ bottom: 9, right: 9 })}
+      {prefs.medallion ? (
+        <>
+          {[
+            { top: 12, left: 12 },
+            { top: 12, right: 12 },
+            { bottom: 12, left: 12 },
+            { bottom: 12, right: 12 },
+          ].map((pos, i) => (
+            <View
+              key={i}
+              style={[
+                { position: 'absolute', width: 11, height: 11, borderRadius: 6, borderWidth: 1, borderColor: colors.gold0, alignItems: 'center', justifyContent: 'center' },
+                pos,
+              ]}>
+              <View style={{ width: 3, height: 3, borderRadius: 1.5, backgroundColor: colors.gold0 }} />
+            </View>
+          ))}
+        </>
+      ) : null}
+    </View>
+  );
 }
 
-/** Yaprağın ön yüzü: tarihler, büyük gün, ay evresi, mini takvim. */
-export function LeafCard({ leaf, onSelectDay }: Props) {
-  const weeks = monthGrid(leaf.date);
-  const selectedDay = leaf.day;
-  const weekend = (col: number) => col >= 5;
+function FlipTab({
+  label,
+  left,
+  onPress,
+}: {
+  label: string;
+  left?: boolean;
+  onPress: () => void;
+}) {
+  const { colors } = useTheme();
+  const Ikon = left ? ArrowCounterClockwise : ArrowClockwise;
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={{
+        position: 'absolute',
+        bottom: 14,
+        [left ? 'left' : 'right']: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 999,
+        backgroundColor: colors.surfaceInk,
+        shadowColor: '#211A12',
+        shadowOpacity: 0.4,
+        shadowRadius: 14,
+        shadowOffset: { width: 0, height: 8 },
+        elevation: 6,
+      }}>
+      {left ? <Ikon size={14} color={colors.gold2} /> : null}
+      <Text style={{ fontFamily: fonts.sansBold, fontSize: 12, letterSpacing: 0.5, color: colors.textOnDark }}>
+        {label}
+      </Text>
+      {!left ? <Ikon size={14} color={colors.gold2} /> : null}
+    </TouchableOpacity>
+  );
+}
+
+export function LeafCard({
+  flipped,
+  onFlip,
+  front,
+  back,
+}: {
+  flipped: boolean;
+  onFlip: () => void;
+  front: React.ReactNode;
+  back: React.ReactNode;
+}) {
+  const { colors, prefs } = useTheme();
+  const anim = useRef(new Animated.Value(flipped ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.timing(anim, {
+      toValue: flipped ? 1 : 0,
+      duration: FLIP_MS,
+      easing: EASE,
+      useNativeDriver: Platform.OS !== 'web',
+    }).start();
+  }, [flipped, anim]);
+
+  const frontRotate = anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
+  const backRotate = anim.interpolate({ inputRange: [0, 1], outputRange: ['180deg', '360deg'] });
+  const frontOpacity = anim.interpolate({
+    inputRange: [0, 0.5, 0.500001, 1],
+    outputRange: [1, 1, 0, 0],
+  });
+  const backOpacity = anim.interpolate({
+    inputRange: [0, 0.499999, 0.5, 1],
+    outputRange: [0, 0, 1, 1],
+  });
+
+  const domeTop = prefs.dome ? 48 : 16;
+  const faceStyle = {
+    backgroundColor: colors.surfaceCard,
+    borderColor: colors.rule,
+    borderTopLeftRadius: domeTop,
+    borderTopRightRadius: domeTop,
+    paddingTop: prefs.dome ? 12 : 0,
+  };
 
   return (
-    <View style={styles.card}>
-      {/* Üst şerit: Hicri | Yıl/Ay/Gün | Rumi */}
-      <View style={styles.topStrip}>
-        <View style={styles.topCol}>
-          <Text style={styles.topYear}>{leaf.hijri.year} Hicri</Text>
-          <Text style={styles.topDetail}>
-            {leaf.hijri.monthName} {leaf.hijri.day}
-          </Text>
-        </View>
-        <View style={[styles.topCol, styles.topColMid]}>
-          <Text style={styles.topDetail}>Yıl: {leaf.year}</Text>
-          <Text style={styles.topDetail}>
-            Ay: {fromIso(leaf.date).getMonth() + 1} · Gün: {leaf.dayOfYear}
-          </Text>
-        </View>
-        <View style={[styles.topCol, styles.topColRight]}>
-          <Text style={styles.topYear}>{leaf.rumi.year} Rumi</Text>
-          <Text style={styles.topDetail}>
-            {leaf.rumi.monthName} {leaf.rumi.day}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.divider} />
-
-      {/* Ay adı + büyük gün + haftanın günü */}
-      <Text style={styles.monthName}>{leaf.monthName.toLocaleUpperCase('tr')}</Text>
-      <Text style={styles.bigDay}>{leaf.day}</Text>
-      <Text style={styles.weekday}>{leaf.weekdayName.toLocaleUpperCase('tr')}</Text>
-      {leaf.specialDay ? <Text style={styles.specialDay}>🎉 {leaf.specialDay}</Text> : null}
-
-      {/* Dönem rozetleri */}
-      <View style={styles.badges}>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>
-            {leaf.seasonal.label}: {leaf.seasonal.day}
-          </Text>
-        </View>
-        {leaf.coldPeriod ? (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>
-              {leaf.coldPeriod.label}: {leaf.coldPeriod.day}
-            </Text>
-          </View>
-        ) : null}
-        <View style={[styles.badge, styles.badgeMoon]}>
-          <Text style={styles.badgeText}>
-            {leaf.moon.emoji} {leaf.moon.name}
-          </Text>
-        </View>
-      </View>
-
-      {/* Mini ay takvimi */}
-      <View style={styles.miniCal}>
-        <View style={styles.miniRow}>
-          {TURKISH_DAYS_SHORT.map((d, i) => (
-            <Text
-              key={d}
-              style={[styles.miniHead, weekend(i) && styles.miniWeekend]}>
-              {d}
-            </Text>
-          ))}
-        </View>
-        {weeks.map((week, wi) => (
-          <View key={wi} style={styles.miniRow}>
-            {week.map((day, ci) =>
-              day === null ? (
-                <Text key={ci} style={styles.miniCell} />
-              ) : (
-                <TouchableOpacity
-                  key={ci}
-                  style={[styles.miniCellWrap, day === selectedDay && styles.miniSelected]}
-                  onPress={() => onSelectDay?.(day)}>
-                  <Text
-                    style={[
-                      styles.miniCell,
-                      weekend(ci) && styles.miniWeekend,
-                      day === selectedDay && styles.miniSelectedText,
-                    ]}>
-                    {day}
-                  </Text>
-                </TouchableOpacity>
-              ),
-            )}
-          </View>
-        ))}
-      </View>
+    <View style={{ flex: 1 }}>
+      <Animated.View
+        pointerEvents={flipped ? 'none' : 'auto'}
+        style={[
+          styles.face,
+          faceStyle,
+          {
+            opacity: frontOpacity,
+            transform: [{ perspective: 2000 }, { rotateY: frontRotate }],
+          },
+        ]}>
+        {front}
+        <FrameOverlay />
+        <FlipTab label="Arka yüz" onPress={onFlip} />
+      </Animated.View>
+      <Animated.View
+        pointerEvents={flipped ? 'auto' : 'none'}
+        style={[
+          styles.face,
+          faceStyle,
+          {
+            opacity: backOpacity,
+            transform: [{ perspective: 2000 }, { rotateY: backRotate }],
+          },
+        ]}>
+        {back}
+        <FrameOverlay />
+        <FlipTab label="Ön yüz" left onPress={onFlip} />
+      </Animated.View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.paper,
-    borderRadius: 14,
+  face: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.line,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
+    overflow: 'hidden',
+    backfaceVisibility: 'hidden',
+    shadowColor: '#211A12',
+    shadowOpacity: 0.3,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
   },
-  topStrip: { flexDirection: 'row', justifyContent: 'space-between' },
-  topCol: { flex: 1 },
-  topColMid: { alignItems: 'center' },
-  topColRight: { alignItems: 'flex-end' },
-  topYear: { fontSize: 13, fontWeight: '700', color: colors.ink },
-  topDetail: { fontSize: 12, color: colors.inkSoft, marginTop: 2 },
-  divider: { height: 1, backgroundColor: colors.line, marginVertical: 10 },
-  monthName: {
-    textAlign: 'center',
-    fontSize: 30,
-    fontWeight: '900',
-    letterSpacing: 10,
-    color: colors.ink,
-  },
-  bigDay: {
-    textAlign: 'center',
-    fontSize: 110,
-    lineHeight: 116,
-    fontWeight: '900',
-    color: colors.red,
-    marginTop: -2,
-  },
-  weekday: {
-    textAlign: 'center',
-    fontSize: 24,
-    fontWeight: '800',
-    letterSpacing: 4,
-    color: colors.ink,
-    marginTop: -4,
-  },
-  specialDay: {
-    textAlign: 'center',
-    fontSize: 14,
-    color: colors.red,
-    fontWeight: '700',
-    marginTop: 6,
-  },
-  badges: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 10,
-  },
-  badge: {
-    backgroundColor: colors.paperShade,
-    borderColor: colors.line,
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  badgeMoon: { backgroundColor: '#EFF3FA', borderColor: '#C9D6EA' },
-  badgeText: { fontSize: 12, color: colors.ink, fontWeight: '600' },
-  miniCal: {
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 10,
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-    backgroundColor: colors.white,
-  },
-  miniRow: { flexDirection: 'row' },
-  miniHead: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.inkSoft,
-    paddingVertical: 2,
-  },
-  miniCellWrap: { flex: 1, alignItems: 'center', borderRadius: 6, paddingVertical: 2 },
-  miniCell: { flex: 1, textAlign: 'center', fontSize: 12, color: colors.ink, paddingVertical: 2 },
-  miniWeekend: { color: colors.red },
-  miniSelected: { backgroundColor: colors.red },
-  miniSelectedText: { color: colors.white, fontWeight: '800' },
+  frame: { position: 'absolute', top: 6, left: 6, right: 6, bottom: 6, borderRadius: 12 },
+  frameInner: { position: 'absolute', top: 10, left: 10, right: 10, bottom: 10, borderRadius: 9 },
 });

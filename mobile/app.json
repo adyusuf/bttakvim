@@ -40,7 +40,8 @@
         {
           "locationWhenInUsePermission": "Namaz vakitlerini bulunduğunuz konuma göre göstermek için konumunuza erişiyoruz."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,

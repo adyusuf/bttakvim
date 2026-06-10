@@ -1,0 +1,109 @@
+/* BTTakvim — Renk sistemi (kanonik palet: Osmanlı Çini / İznik)
+   Tavlanmış ivory kâğıt, mürekkep, bole kırmızısı (rakamlar/vurgu),
+   tezhip altını (süsleme), kobalt mavisi (çerçeve/bağlantı) ve İznik
+   zümrüt yeşili (namaz vakitleri). Diğer paletler Tweaks ile seçilir. */
+:root {
+  /* ----- Base · kâğıt (warm ivory neutrals) ----- */
+  --paper-0: #FCF8EF;   /* en açık — kart yüzeyi */
+  --paper-1: #F4ECD9;   /* ana kâğıt zemini */
+  --paper-2: #EADFC4;   /* hafif gömük yüzey */
+  --paper-3: #DCCDAC;   /* tavlanmış / yaşlı kâğıt */
+
+  /* ----- Base · mürekkep (ink) ----- */
+  --ink-0: #211C12;     /* sıcak siyaha yakın — birincil metin */
+  --ink-1: #433A28;     /* ikincil metin */
+  --ink-2: #6E5E45;     /* susturulmuş */
+  --ink-3: #9A8C70;     /* soluk / placeholder */
+
+  /* ----- Base · bole kırmızısı (rakamlar, vurgu) ----- */
+  --red-0: #A3271D;     /* derin bole — rakamlar, gün adı */
+  --red-1: #C0392B;     /* parlak vurgu */
+  --red-2: #7E1C15;     /* koyu / press */
+  --red-wash: #F1D8D2;  /* yumuşak zemin */
+
+  /* ----- Base · tezhip altını (süsleme) ----- */
+  --gold-0: #A97E22;
+  --gold-1: #CFAA57;
+  --gold-2: #E6CE8C;
+  --gold-wash: #F0E4C4;
+
+  /* ----- Base · kobalt mavisi (çerçeve, bağlantı) ----- */
+  --blue-0: #1E3F8F;
+  --blue-1: #3159B0;
+  --blue-wash: #D8DFF1;
+
+  /* ----- Base · İznik zümrüt yeşili (namaz vakitleri) ----- */
+  --green-0: #1F6F54;
+  --green-1: #2F8C6C;
+  --green-wash: #D5E6DE;
+
+  /* ----- Çizgiler ----- */
+  --rule: rgba(33, 28, 18, 0.14);
+  --rule-strong: rgba(33, 28, 18, 0.30);
+  --rule-gold: rgba(169, 126, 34, 0.48);
+
+  /* ================= Semantik takma adlar ================= */
+  --surface-app: var(--paper-1);
+  --surface-card: var(--paper-0);
+  --surface-sunken: var(--paper-2);
+  --surface-aged: var(--paper-3);
+  --surface-ink: var(--ink-0);
+
+  --text-primary: var(--ink-0);
+  --text-secondary: var(--ink-1);
+  --text-muted: var(--ink-2);
+  --text-faint: var(--ink-3);
+  --text-on-dark: var(--paper-0);
+  --text-on-red: #FBEDE9;
+
+  --accent: var(--red-0);
+  --accent-bright: var(--red-1);
+  --accent-press: var(--red-2);
+  --accent-soft: var(--red-wash);
+
+  --ornament: var(--gold-0);
+  --ornament-soft: var(--gold-wash);
+
+  --link: var(--blue-1);
+  --link-strong: var(--blue-0);
+
+  --prayer: var(--green-0);
+  --prayer-soft: var(--green-wash);
+
+  --border: var(--rule);
+  --border-strong: var(--rule-strong);
+
+  /* ============================================================
+     BİLEŞEN ÖLÇEK TAKMA ADLARI
+     components/ altındaki primitive'ler sayısal ölçek isimleri
+     kullanır; hepsi yukarıdaki kanonik paletin üzerine eşlenir. */
+  --paper-50: var(--paper-0);
+  --paper-100: var(--paper-1);
+  --paper-200: #E8DCC4;
+  --paper-300: var(--paper-3);
+
+  --crimson-100: var(--red-wash);
+  --crimson-600: var(--red-0);
+  --crimson-700: var(--red-2);
+
+  --navy-100: var(--blue-wash);
+  --navy-600: var(--blue-0);
+  --navy-800: #14374C;
+
+  --green-100: var(--green-wash);
+  --green-500: var(--green-1);
+  --green-700: var(--green-0);
+
+  --gold-100: var(--gold-wash);
+  --gold-500: var(--gold-1);
+  --gold-600: var(--gold-0);
+
+  --ink-700: var(--ink-1);
+
+  --bg-app: var(--paper-1);
+  --brand: var(--red-0);
+  --border-frame: var(--gold-0);
+  --link-hover: var(--blue-0);
+  --text-body: var(--ink-1);
+  --text-strong: var(--ink-0);
+}

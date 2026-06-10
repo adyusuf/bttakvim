@@ -1,0 +1,50 @@
+/* BTTakvim — base element defaults (shipped to consumers) */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg-app);
+  color: var(--text-body);
+  font: var(--type-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4 {
+  margin: 0;
+  color: var(--text-strong);
+  font-family: var(--font-display);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-snug);
+}
+
+p { margin: 0 0 var(--space-4); }
+a { color: var(--link); text-decoration: none; }
+a:hover { color: var(--link-hover); }
+
+img { max-width: 100%; display: block; }
+
+/* Eyebrow / printed label — the boxed kicker used across leaves & cards */
+.bt-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: var(--type-eyebrow);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--brand);
+}
+
+/* Dotted leader rule — echoes the print calendar's dotted dividers */
+.bt-leader {
+  flex: 1;
+  border: 0;
+  border-top: var(--hair) dotted var(--paper-300);
+  align-self: center;
+  margin: 0;
+}
+
+/* Tabular numerals for data (prayer times, etc.) */
+.bt-tnum { font-variant-numeric: tabular-nums; }

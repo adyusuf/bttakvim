@@ -7,7 +7,11 @@ public static class DbSeeder
 {
     public static async Task SeedAsync(AppDbContext db)
     {
-        if (await db.ContentCategories.AnyAsync()) return;
+        if (await db.ContentCategories.AnyAsync())
+        {
+            await EnsureAdditionsAsync(db);
+            return;
+        }
 
         // ---- Ayarlar ----
         db.Settings.AddRange(
@@ -20,6 +24,8 @@ public static class DbSeeder
         var categoryDefs = new (string Slug, string Name, string Icon)[]
         {
             ("ozel-gunler", "Özel Günler", "🎉"),
+            ("gunun-sohbeti", "Günün Sohbeti", "🌷"),
+            ("gunun-menusu", "Günün Menüsü", "🍲"),
             ("biraz-da-felsefe", "Biraz da Felsefe", "🧠"),
             ("gastronomi", "Yemek Kültürü", "🍲"),
             ("ilginc-bilgiler", "İlginç Bilgiler", "💡"),
@@ -65,6 +71,8 @@ public static class DbSeeder
         Item("ozel-gunler", "Cumhuriyet Bayramı", "Cumhuriyet'in ilanı (1923). Bayramınız kutlu olsun!", 10, 29);
         Item("ozel-gunler", "Atatürk'ü Anma Günü", "Gazi Mustafa Kemal Atatürk'ün ebediyete intikali (1938).", 11, 10);
         Item("ozel-gunler", "Öğretmenler Günü", "24 Kasım Öğretmenler Günü kutlu olsun.", 11, 24);
+
+        AddSohbetVeMenuItems(db, categories["gunun-sohbeti"], categories["gunun-menusu"]);
 
         // Biraz da felsefe
         Item("biraz-da-felsefe", "Her An Felsefe",
@@ -307,6 +315,56 @@ public static class DbSeeder
         });
 
         await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Tasarım sistemiyle gelen yeni kategorileri mevcut (daha önce seed edilmiş)
+    /// veritabanına idempotent olarak ekler.
+    /// </summary>
+    private static async Task EnsureAdditionsAsync(AppDbContext db)
+    {
+        if (await db.ContentCategories.AnyAsync(c => c.Slug == "gunun-sohbeti")) return;
+
+        var maxSort = await db.ContentCategories.MaxAsync(c => (int?)c.SortOrder) ?? 0;
+        var sohbet = new ContentCategory { Slug = "gunun-sohbeti", Name = "Günün Sohbeti", Icon = "🌷", SortOrder = maxSort + 1 };
+        var menu = new ContentCategory { Slug = "gunun-menusu", Name = "Günün Menüsü", Icon = "🍲", SortOrder = maxSort + 2 };
+        db.ContentCategories.AddRange(sohbet, menu);
+        AddSohbetVeMenuItems(db, sohbet, menu);
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>Günün Sohbeti yazıları + Günün Menüsü (virgülle ayrılmış yemekler).</summary>
+    private static void AddSohbetVeMenuItems(AppDbContext db, ContentCategory sohbet, ContentCategory menu)
+    {
+        void S(string title, string body, int? m = null, int? d = null) =>
+            db.ContentItems.Add(new ContentItem
+            {
+                Category = sohbet, Title = title, Body = body,
+                PinnedMonth = m, PinnedDay = d, CreatedAtUtc = DateTime.UtcNow,
+            });
+        void M(string title, string dishes) =>
+            db.ContentItems.Add(new ContentItem
+            {
+                Category = menu, Title = title, Body = dishes, CreatedAtUtc = DateTime.UtcNow,
+            });
+
+        S("İnsanlar Eşittir",
+            "Allah'ın huzurunda ırkı, rengi, dili ya da cinsiyeti fark etmeksizin herkes eşittir. İnsanlık; hayatta ve ölümde, haklarda ve borçlarda, kanun önünde ve vicdanda eşitlenmiştir. Hiçbir vasıf, bir insanı diğerlerinin önüne geçirebilecek güçte değildir.");
+        S("Şükürle Kapanan Yıl",
+            "Bir yılı geride bırakırken kazanılan en büyük servet, geçen günlerin kıymetini bilmektir. İnsan, elindekinin değerini çoğu zaman onu yitirdiğinde anlar. Bugün; sağlığa, ekmeğe ve sevdiklerimize sahip olmanın şükrünü hatırlama günüdür.", 12, 31);
+        S("Komşuluk Hakkı",
+            "Eskiler, kapısı çalınmadan halini soran komşuyu en büyük zenginlik sayardı. Mahallenin huzuru, paylaşılan bir tabak yemekte, hatırlanan bir selamda saklıdır.");
+        S("Sözün Değeri",
+            "Söz, ağızdan çıkana kadar insanın esiridir; çıktıktan sonra insan sözünün esiri olur. Az ve öz konuşmak, hem dinleyene hem söyleyene saygıdır.");
+        S("Misafir Bereketi",
+            "Anadolu'da kapı çalındığında sofraya bir tabak daha konur. Misafir, bereketiyle gelir; ev sahibine düşen, güler yüzle karşılamaktır.");
+
+        M("Kış Sofrası", "Mercimek çorbası, Etli kuru fasulye, Bulgur pilavı, Turşu");
+        M("Klasik Sofra", "Tarhana çorbası, Tas kebabı, Pirinç pilavı, Çoban salata");
+        M("Cuma Sofrası", "Yayla çorbası, Etli nohut, Tereyağlı pilav, Cacık");
+        M("Ege Sofrası", "Ezogelin çorbası, Zeytinyağlı enginar, Şehriyeli pilav, Mevsim salata");
+        M("Anadolu Sofrası", "Düğün çorbası, Karnıyarık, Bulgur pilavı, Ayran");
+        M("Deniz Sofrası", "Balık çorbası, Fırında levrek, Roka salatası, Cevizli baklava");
     }
 
     // Faz 4'te gerçek parola karması (BCrypt/Argon2) ile değiştirilecek.

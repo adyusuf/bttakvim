@@ -1,0 +1,28 @@
+/* BTTakvim — Boşluk, köşe yarıçapı ve çizgi kalınlıkları.
+   (Gölge, doku ve hareket tokenları effects.css içindedir.) */
+:root {
+  /* Boşluk ölçeği (4px tabanlı) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 64px;
+
+  /* Köşe yarıçapı */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-2xl: 28px;
+  --radius-pill: 999px;
+
+  /* Çizgi kalınlıkları */
+  --hair: 1px;     /* @kind spacing */
+  --frame: 2px;    /* @kind spacing */
+}

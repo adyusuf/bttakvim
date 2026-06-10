@@ -1,0 +1,53 @@
+/* BTTakvim — Tipografi
+   Bitter (slab serif)  → almanak rakamları & display başlıklar
+   Lora  (old-style serif) → editoryal gövde (yaprak metni, blog, yemek)
+   Hanken Grotesk (humanist sans) → UI etiketleri, navigasyon, küçük başlıklar */
+:root {
+  --font-display: 'Bitter', 'Roboto Slab', Georgia, serif;
+  --font-serif: 'Lora', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  --font-ottoman: 'Amiri', 'Lora', Georgia, serif;   /* Osmanlı el yazması hissi: başlıklar & söz markası */
+
+  /* Tip ölçeği (mobil) */
+  --text-2xs: 11px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-md: 17px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+  --text-2xl: 30px;
+  --text-3xl: 38px;
+  --text-4xl: 48px;
+  --text-display: 132px;   /* dev gün sayısı */
+
+  /* Ağırlık */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extrabold: 800;
+  --weight-black: 900;
+
+  /* Satır yüksekliği */
+  --leading-tight: 1.05;
+  --leading-snug: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.7;
+
+  /* Harf aralığı — büyük harf etiketler için */
+  --tracking-label: 0.14em;
+  --tracking-wide: 0.06em;
+  --tracking-tight: -0.01em;
+
+  /* ===== Bileşen takma adları ===== */
+  --fw-regular: 400;    /* @kind other */
+  --fw-medium: 500;     /* @kind other */
+  --fw-semibold: 600;   /* @kind other */
+  --fw-bold: 700;       /* @kind other */
+  --lh-snug: 1.25;      /* @kind other */
+  --ls-eyebrow: 0.14em;
+  --type-label: 700 11px/1 var(--font-sans);
+  --type-eyebrow: 700 10px/1 var(--font-sans);
+  --type-body: 400 15px/1.6 var(--font-serif);
+}
