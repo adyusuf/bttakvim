@@ -7,6 +7,14 @@
       "runtimeArgs": ["expo", "start", "--web", "--port", "8081"],
       "cwd": "mobile",
       "port": 8081
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "web",
+      "port": 5173,
+      "autoPort": true
     }
   ]
 }

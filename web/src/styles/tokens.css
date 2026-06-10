@@ -1,0 +1,116 @@
+/* BTTakvim — tasarım sistemi tokenları (kanonik: Osmanlı Çini / İznik).
+   Kaynak: docs/design-system/tokens/*.css */
+@import url('https://fonts.googleapis.com/css2?family=Bitter:ital,wght@0,400;0,700;0,800;0,900&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600;1,700&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Amiri:wght@400;700&display=swap');
+
+:root {
+  /* Kâğıt */
+  --paper-0: #FCF8EF; --paper-1: #F4ECD9; --paper-2: #EADFC4; --paper-3: #DCCDAC;
+  /* Mürekkep */
+  --ink-0: #211C12; --ink-1: #433A28; --ink-2: #6B5E45; --ink-3: #9A8C70;
+  /* Bole kırmızısı */
+  --red-0: #A3271D; --red-1: #C0392B; --red-2: #7E1C15; --red-wash: #F1D8D2;
+  /* Tezhip altını */
+  --gold-0: #A97E22; --gold-1: #CFAA57; --gold-2: #E6CE8C; --gold-wash: #F0E4C4;
+  /* Kobalt mavisi */
+  --blue-0: #1E3F8F; --blue-1: #3159B0; --blue-wash: #D8DFF1;
+  /* İznik zümrüt yeşili */
+  --green-0: #1F6F54; --green-1: #2F8C6C; --green-wash: #D5E6DE;
+  /* Çizgiler */
+  --rule: rgba(33,28,18,0.14); --rule-strong: rgba(33,28,18,0.30); --rule-gold: rgba(169,126,34,0.48);
+
+  /* Semantik */
+  --surface-app: var(--paper-1); --surface-card: var(--paper-0); --surface-sunken: var(--paper-2);
+  --surface-aged: var(--paper-3); --surface-ink: var(--ink-0);
+  --text-primary: var(--ink-0); --text-secondary: var(--ink-1); --text-muted: var(--ink-2);
+  --text-faint: var(--ink-3); --text-on-dark: var(--paper-0); --text-on-red: #FBEDE9;
+  --accent: var(--red-0); --accent-bright: var(--red-1); --accent-press: var(--red-2); --accent-soft: var(--red-wash);
+  --ornament: var(--gold-0); --ornament-soft: var(--gold-wash);
+  --link: var(--blue-1); --link-strong: var(--blue-0);
+  --prayer: var(--green-0); --prayer-soft: var(--green-wash);
+  --border: var(--rule); --border-strong: var(--rule-strong);
+
+  /* Tipografi */
+  --font-display: 'Bitter', 'Roboto Slab', Georgia, serif;
+  --font-serif: 'Lora', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  --font-ottoman: 'Amiri', 'Lora', Georgia, serif;
+  --tracking-label: 0.14em;
+
+  /* Köşe yarıçapı */
+  --radius-xs: 4px; --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px;
+  --radius-xl: 22px; --radius-2xl: 28px; --radius-pill: 999px;
+
+  /* Gölge & doku */
+  --shadow-sm: 0 1px 2px rgba(33,26,18,.07);
+  --shadow-leaf: 0 1px 0 rgba(255,255,255,.6) inset, 0 10px 30px -12px rgba(33,26,18,.35), 0 2px 6px -2px rgba(33,26,18,.18);
+  --shadow-card: 0 1px 2px rgba(33,26,18,.06), 0 6px 18px -10px rgba(33,26,18,.25);
+  --shadow-pop: 0 14px 40px -12px rgba(33,26,18,.40);
+  --paper-grain:
+    radial-gradient(circle at 20% 12%, rgba(182,137,44,.05), transparent 38%),
+    radial-gradient(circle at 82% 78%, rgba(30,58,95,.04), transparent 42%);
+}
+
+/* ===== Palet varyantları (Tweaks) — :root[data-palette="…"] ===== */
+:root[data-palette="hunkar"] {
+  --paper-0:#F7F0DF; --paper-1:#EFE5CD; --paper-2:#E4D6B8; --paper-3:#D5C3A0;
+  --ink-0:#1E1810; --ink-1:#3D3422; --ink-2:#665741; --ink-3:#94835F;
+  --red-0:#8E1F2B; --red-1:#A82F3A; --red-2:#6E1620; --red-wash:#EFD3D5;
+  --gold-0:#A07623; --gold-1:#C6A04F; --gold-2:#DEC183; --gold-wash:#EEE0BC;
+  --blue-0:#173A4A; --blue-1:#27566A; --blue-wash:#D3E0E4;
+  --green-0:#1C5A43; --green-1:#2C7659; --green-wash:#D2E4DA;
+  --rule:rgba(30,24,16,.15); --rule-strong:rgba(30,24,16,.32); --rule-gold:rgba(160,118,35,.48);
+}
+:root[data-palette="klasik"] {
+  --paper-0:#FCFAF3; --paper-1:#F7F1E2; --paper-2:#EFE6D1; --paper-3:#E4D6BB;
+  --ink-0:#221B13; --ink-1:#463A2B; --ink-2:#6E5E4A; --ink-3:#9B8B75;
+  --red-0:#9E1B1E; --red-1:#BE2B26; --red-2:#7C1417; --red-wash:#F3DAD5;
+  --gold-0:#A2762B; --gold-1:#C9A458; --gold-2:#E0C684; --gold-wash:#EFE3C1;
+  --blue-0:#1C4A66; --blue-1:#2C6B90; --blue-wash:#DBE6EE;
+  --green-0:#2E5C44; --green-1:#3C7857; --green-wash:#DCE8DE;
+  --rule:rgba(34,27,19,.14); --rule-strong:rgba(34,27,19,.30); --rule-gold:rgba(162,118,43,.40);
+}
+:root[data-palette="gul"] {
+  --paper-0:#FDF6F4; --paper-1:#F8E9E6; --paper-2:#F0D9D6; --paper-3:#E6C6C3;
+  --ink-0:#2A1A1C; --ink-1:#4E3033; --ink-2:#79555A; --ink-3:#A98890;
+  --red-0:#9B2D45; --red-1:#B83E59; --red-2:#7A2236; --red-wash:#F3D9DF;
+  --gold-0:#B08A3C; --gold-1:#D0AE66; --gold-2:#E6CF96; --gold-wash:#F0E6CC;
+  --blue-0:#5B3A6E; --blue-1:#7A5490; --blue-wash:#E7DCEE;
+  --green-0:#4F6B4A; --green-1:#6A8463; --green-wash:#DEE7DA;
+  --rule:rgba(42,26,28,.13); --rule-strong:rgba(42,26,28,.28); --rule-gold:rgba(176,138,60,.40);
+}
+:root[data-palette="ege"] {
+  --paper-0:#FBFCFB; --paper-1:#EAF1F0; --paper-2:#DBE7E6; --paper-3:#C6D8D7;
+  --ink-0:#14272B; --ink-1:#2C474C; --ink-2:#557076; --ink-3:#88A3A7;
+  --red-0:#0E7C86; --red-1:#16969F; --red-2:#0A5E66; --red-wash:#D2EBED;
+  --gold-0:#C58133; --gold-1:#E0A85C; --gold-2:#F0C98C; --gold-wash:#F3E6CF;
+  --blue-0:#143A5E; --blue-1:#245A85; --blue-wash:#D6E4EF;
+  --green-0:#4A6B3F; --green-1:#648659; --green-wash:#DCE6D6;
+  --rule:rgba(20,39,43,.13); --rule-strong:rgba(20,39,43,.28); --rule-gold:rgba(197,129,51,.38);
+}
+:root[data-palette="zeytin"] {
+  --paper-0:#FBF8F1; --paper-1:#F0E9D9; --paper-2:#E6DCC6; --paper-3:#D8CBAE;
+  --ink-0:#241F15; --ink-1:#463F2C; --ink-2:#6E6448; --ink-3:#9C9070;
+  --red-0:#B0532A; --red-1:#C9683C; --red-2:#8C3E1E; --red-wash:#F1DBCC;
+  --gold-0:#9C7A2E; --gold-1:#C2A05A; --gold-2:#DCC288; --gold-wash:#ECE2C4;
+  --blue-0:#2A5550; --blue-1:#3E726C; --blue-wash:#DCE7E4;
+  --green-0:#3E5A2E; --green-1:#59763F; --green-wash:#DEE6D2;
+  --rule:rgba(36,31,21,.14); --rule-strong:rgba(36,31,21,.30); --rule-gold:rgba(156,122,46,.40);
+}
+:root[data-palette="lacivert"] {
+  --paper-0:#FCFBF7; --paper-1:#F1EEE4; --paper-2:#E7E2D3; --paper-3:#D8D1BC;
+  --ink-0:#1A1E2A; --ink-1:#333A4E; --ink-2:#5C6478; --ink-3:#8E96AA;
+  --red-0:#2A3D7A; --red-1:#3A4F94; --red-2:#1E2C5C; --red-wash:#DCE0F0;
+  --gold-0:#A07C2E; --gold-1:#C7A45C; --gold-2:#E0C98C; --gold-wash:#EEE5C8;
+  --blue-0:#334155; --blue-1:#475569; --blue-wash:#DEE3EA;
+  --green-0:#2E5C54; --green-1:#427268; --green-wash:#DBE7E3;
+  --rule:rgba(26,30,42,.13); --rule-strong:rgba(26,30,42,.28); --rule-gold:rgba(160,124,46,.40);
+}
+:root[data-palette="antrasit"] {
+  --paper-0:#FCFCFB; --paper-1:#F2F1ED; --paper-2:#E7E6E1; --paper-3:#D6D5CE;
+  --ink-0:#1C1C1A; --ink-1:#3A3A37; --ink-2:#62625E; --ink-3:#93938E;
+  --red-0:#C0392B; --red-1:#D6493B; --red-2:#94281D; --red-wash:#F3DAD6;
+  --gold-0:#8C7A4A; --gold-1:#B3A375; --gold-2:#D2C6A0; --gold-wash:#EAE5D4;
+  --blue-0:#2C3E50; --blue-1:#41566B; --blue-wash:#DEE3E8;
+  --green-0:#3E6B50; --green-1:#588568; --green-wash:#DCE8DF;
+  --rule:rgba(28,28,26,.12); --rule-strong:rgba(28,28,26,.26); --rule-gold:rgba(140,122,74,.38);
+}
