@@ -7,10 +7,10 @@ Ayrıntılı plan: [docs/PLAN.md](docs/PLAN.md)
 
 | Dizin | İçerik |
 |---|---|
-| `backend/` | ASP.NET Core Web API (.NET 10) + EF Core + PostgreSQL — yaprak motoru, namaz vakitleri, yorum/tepki API'leri |
-| `mobile/` | React Native (Expo) — takvim yaprağı ekranı |
-| `web/` | (Faz 3-4) React — site + admin paneli |
-| `docs/` | Plan ve tasarım notları |
+| `backend/` | ASP.NET Core Web API (.NET 10) + EF Core + PostgreSQL — yaprak motoru, namaz vakitleri, blog/yorum/tepki API'leri |
+| `mobile/` | React Native (Expo) — Osmanlı Çini tasarımıyla yaprak (ön/arka), Keşfet, Vakitler, Daha |
+| `web/` | React + Vite — blog omurgalı site, yaprak yan sütunu, yazı görünümü, Namaz Vakitleri (admin: Faz 4) |
+| `docs/` | Plan, tasarım sistemi tokenları (`docs/design-system/`) |
 
 ## Çalıştırma
 
@@ -41,6 +41,15 @@ npx expo start          # Expo Go ile telefonda; w = web önizleme
 
 API adresi otomatik olarak Metro sunucusunun IP'sinden türetilir (fiziksel cihazda da çalışır).
 Farklı bir backend için: `EXPO_PUBLIC_API_URL=http://1.2.3.4:5210 npx expo start`
+
+### 4. Web sitesi
+
+```bash
+cd web
+npm run dev          # http://localhost:5173
+```
+
+Backend `localhost:5210`'da değilse: `web/.env` içine `VITE_API_URL=http://...:5210`.
 
 ## Temel kurallar
 
