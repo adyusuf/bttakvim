@@ -310,8 +310,8 @@ public static class DbSeeder
         {
             Email = "admin@bttakvim.local",
             Name = "Yönetici",
-            // Geliştirme için: "admin123!" — Faz 4'te gerçek auth ile değiştirilecek.
-            PasswordHash = BCryptLitePlaceholder("admin123!"),
+            // Geliştirme girişi: admin@bttakvim.local / admin123!
+            PasswordHash = Services.AuthService.HashPassword("admin123!"),
         });
 
         await db.SaveChangesAsync();
@@ -366,9 +366,4 @@ public static class DbSeeder
         M("Anadolu Sofrası", "Düğün çorbası, Karnıyarık, Bulgur pilavı, Ayran");
         M("Deniz Sofrası", "Balık çorbası, Fırında levrek, Roka salatası, Cevizli baklava");
     }
-
-    // Faz 4'te gerçek parola karması (BCrypt/Argon2) ile değiştirilecek.
-    private static string BCryptLitePlaceholder(string password) =>
-        Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(
-            System.Text.Encoding.UTF8.GetBytes("bttakvim-salt::" + password)));
 }

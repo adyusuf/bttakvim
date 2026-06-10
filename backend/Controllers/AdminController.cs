@@ -1,16 +1,31 @@
 using BTTakvim.Api.Data;
 using BTTakvim.Api.Models;
 using BTTakvim.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace BTTakvim.Api.Controllers;
 
-// NOT: Faz 4'te JWT yetkilendirmesi eklenecek; şu an geliştirme amaçlı açık.
 [ApiController]
 [Route("api/admin")]
+[Authorize(Roles = "admin")]
 public class AdminController(AppDbContext db, LeafService leafService) : ControllerBase
 {
+    // ---- Özet (dashboard) ----
+
+    [HttpGet("summary")]
+    public async Task<IActionResult> Summary(CancellationToken ct) => Ok(new
+    {
+        leaves = await db.CalendarLeaves.CountAsync(ct),
+        categories = await db.ContentCategories.CountAsync(ct),
+        contentItems = await db.ContentItems.CountAsync(ct),
+        historyEvents = await db.HistoryEvents.CountAsync(ct),
+        blogPosts = await db.BlogPosts.CountAsync(ct),
+        comments = await db.Comments.CountAsync(ct),
+        reports = await db.Reactions.CountAsync(r => r.Kind == ReactionKind.Report, ct),
+    });
+
     // ---- Yapraklar ----
 
     /// <summary>Üretilmiş (ziyaret edilmiş) yaprakların listesi.</summary>
@@ -168,6 +183,83 @@ public class AdminController(AppDbContext db, LeafService leafService) : Control
         var ev = await db.HistoryEvents.FindAsync([id], ct);
         if (ev is null) return NotFound();
         db.HistoryEvents.Remove(ev);
+        await db.SaveChangesAsync(ct);
+        return Ok();
+    }
+
+    // ---- Blog kategorileri ----
+
+    [HttpGet("blog-categories")]
+    public async Task<IActionResult> BlogCategories(CancellationToken ct) =>
+        Ok(await db.BlogCategories.OrderBy(c => c.Id)
+            .Select(c => new { c.Id, c.Slug, c.Name, PostCount = c.Posts.Count })
+            .ToListAsync(ct));
+
+    public record BlogCategoryRequest(string Slug, string Name);
+
+    [HttpPost("blog-categories")]
+    public async Task<IActionResult> CreateBlogCategory([FromBody] BlogCategoryRequest req, CancellationToken ct)
+    {
+        if (await db.BlogCategories.AnyAsync(c => c.Slug == req.Slug, ct))
+            return Conflict(new { error = "Bu slug zaten var." });
+        var c = new BlogCategory { Slug = req.Slug, Name = req.Name };
+        db.BlogCategories.Add(c);
+        await db.SaveChangesAsync(ct);
+        return Ok(new { c.Id });
+    }
+
+    // ---- Blog yazıları ----
+
+    [HttpGet("blog-posts")]
+    public async Task<IActionResult> BlogPosts(CancellationToken ct) =>
+        Ok(await db.BlogPosts.Include(p => p.Category)
+            .OrderByDescending(p => p.CreatedAtUtc)
+            .Select(p => new
+            {
+                p.Id, p.Slug, p.Title, p.Summary, p.Body, p.CategoryId,
+                CategoryName = p.Category!.Name, p.CoverImageUrl, p.IsPublished, p.PublishedAtUtc,
+            })
+            .ToListAsync(ct));
+
+    public record BlogPostRequest(
+        int CategoryId, string Slug, string Title, string Summary, string Body,
+        string? CoverImageUrl, bool IsPublished);
+
+    [HttpPost("blog-posts")]
+    public async Task<IActionResult> CreateBlogPost([FromBody] BlogPostRequest req, CancellationToken ct)
+    {
+        if (await db.BlogPosts.AnyAsync(p => p.Slug == req.Slug, ct))
+            return Conflict(new { error = "Bu slug zaten var." });
+        var post = new BlogPost
+        {
+            CategoryId = req.CategoryId, Slug = req.Slug, Title = req.Title, Summary = req.Summary,
+            Body = req.Body, CoverImageUrl = req.CoverImageUrl, IsPublished = req.IsPublished,
+            PublishedAtUtc = req.IsPublished ? DateTime.UtcNow : null, CreatedAtUtc = DateTime.UtcNow,
+        };
+        db.BlogPosts.Add(post);
+        await db.SaveChangesAsync(ct);
+        return Ok(new { post.Id });
+    }
+
+    [HttpPut("blog-posts/{id:int}")]
+    public async Task<IActionResult> UpdateBlogPost(int id, [FromBody] BlogPostRequest req, CancellationToken ct)
+    {
+        var post = await db.BlogPosts.FindAsync([id], ct);
+        if (post is null) return NotFound();
+        post.CategoryId = req.CategoryId; post.Slug = req.Slug; post.Title = req.Title;
+        post.Summary = req.Summary; post.Body = req.Body; post.CoverImageUrl = req.CoverImageUrl;
+        if (req.IsPublished && !post.IsPublished) post.PublishedAtUtc = DateTime.UtcNow;
+        post.IsPublished = req.IsPublished;
+        await db.SaveChangesAsync(ct);
+        return Ok();
+    }
+
+    [HttpDelete("blog-posts/{id:int}")]
+    public async Task<IActionResult> DeleteBlogPost(int id, CancellationToken ct)
+    {
+        var post = await db.BlogPosts.FindAsync([id], ct);
+        if (post is null) return NotFound();
+        db.BlogPosts.Remove(post);
         await db.SaveChangesAsync(ct);
         return Ok();
     }

@@ -1,8 +1,11 @@
+using System.Text;
 using System.Text.Json.Serialization;
 using BTTakvim.Api.Data;
 using BTTakvim.Api.Services;
 using BTTakvim.Api.Services.Providers;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +24,25 @@ builder.Services.AddSingleton<IPrayerTimesProvider, MockDiyanetPrayerTimesProvid
 builder.Services.AddScoped<IQuoteProvider, DbQuoteProvider>();
 builder.Services.AddScoped<INameProvider, DbNameProvider>();
 builder.Services.AddScoped<LeafService>();
+builder.Services.AddScoped<AuthService>();
+
+// Admin JWT kimlik doğrulama
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "bttakvim-dev-secret-key-change-in-production-please-32+";
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(opt =>
+    {
+        opt.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = "bttakvim",
+            ValidAudience = "bttakvim-admin",
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+        };
+    });
+builder.Services.AddAuthorization();
 
 builder.Services.AddCors(opt => opt.AddDefaultPolicy(p =>
     p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
@@ -38,6 +60,8 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseCors();
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapOpenApi();
 app.MapControllers();
 app.MapGet("/", () => Results.Ok(new

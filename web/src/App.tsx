@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Route, Routes } from 'react-router-dom';
+import { AdminApp } from './admin/AdminApp';
+import { AdminAuthProvider } from './admin/auth';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { SearchOverlay } from './components/SearchOverlay';
@@ -8,7 +10,7 @@ import { Article } from './pages/Article';
 import { BlogList } from './pages/BlogList';
 import { Vakitler } from './pages/Vakitler';
 
-export default function App() {
+function Site() {
   const [searchOpen, setSearchOpen] = useState(false);
   return (
     <>
@@ -23,5 +25,14 @@ export default function App() {
       <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
       <Tweaks />
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/admin/*" element={<AdminAuthProvider><AdminApp /></AdminAuthProvider>} />
+      <Route path="/*" element={<Site />} />
+    </Routes>
   );
 }
