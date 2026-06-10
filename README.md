@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BTTakvim
 
-## Getting Started
+Klasik yaprak takvim (Saatli Maarif / Vasıf Ülkü tarzı) deneyimini web + mobil uygulamaya taşıyan platform.
+Ayrıntılı plan: [docs/PLAN.md](docs/PLAN.md)
 
-First, run the development server:
+## Yapı
+
+| Dizin | İçerik |
+|---|---|
+| `backend/` | ASP.NET Core Web API (.NET 10) + EF Core + PostgreSQL — yaprak motoru, namaz vakitleri, yorum/tepki API'leri |
+| `mobile/` | React Native (Expo) — takvim yaprağı ekranı |
+| `web/` | (Faz 3-4) React — site + admin paneli |
+| `docs/` | Plan ve tasarım notları |
+
+## Çalıştırma
+
+### 1. PostgreSQL (Docker)
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker run -d --name bttakvim-postgres \
+  -e POSTGRES_USER=bttakvim -e POSTGRES_PASSWORD=bttakvim -e POSTGRES_DB=bttakvim \
+  -p 5432:5432 --restart unless-stopped postgres:16
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Backend
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cd backend
+dotnet run --launch-profile http   # http://localhost:5210
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+İlk açılışta migration + seed otomatik uygulanır.
+Hızlı test: `curl http://localhost:5210/api/leaves/today`
 
-## Learn More
+### 3. Mobil
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+cd mobile
+npx expo start          # Expo Go ile telefonda; w = web önizleme
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+API adresi otomatik olarak Metro sunucusunun IP'sinden türetilir (fiziksel cihazda da çalışır).
+Farklı bir backend için: `EXPO_PUBLIC_API_URL=http://1.2.3.4:5210 npx expo start`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Temel kurallar
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Yaprak, bir tarih **ilk kez ziyaret edildiğinde** üretilir ve veritabanına yazılır; bir daha değişmez.
+- Admin sıfırlayabilir: `DELETE /api/admin/leaves/{yyyy-MM-dd}` → sonraki ziyarette yeniden üretilir.
+- Gezilmeyen tarihler veritabanına yazılmaz.
+- Namaz vakitleri/kıble saati/gündüz süresi konuma bağlıdır; yaprağa gömülmez, istek anında hesaplanır.
+- Ay evresi, namaz vakitleri, özlü söz ve isim sağlayıcıları **mock-first** arayüzlerin arkasındadır;
+  Faz 5'te gerçek servislere (Diyanet, bilimsel ay API'si) bağlanacak.

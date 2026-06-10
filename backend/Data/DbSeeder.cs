@@ -1,0 +1,316 @@
+using BTTakvim.Api.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace BTTakvim.Api.Data;
+
+public static class DbSeeder
+{
+    public static async Task SeedAsync(AppDbContext db)
+    {
+        if (await db.ContentCategories.AnyAsync()) return;
+
+        // ---- Ayarlar ----
+        db.Settings.AddRange(
+            new AppSetting { Key = "content_mode", Value = "random" }, // random | fixed
+            new AppSetting { Key = "moon_provider", Value = "mock" },
+            new AppSetting { Key = "prayer_provider", Value = "mock-diyanet" });
+
+        // ---- İçerik kategorileri ----
+        var categories = new Dictionary<string, ContentCategory>();
+        var categoryDefs = new (string Slug, string Name, string Icon)[]
+        {
+            ("ozel-gunler", "Özel Günler", "🎉"),
+            ("biraz-da-felsefe", "Biraz da Felsefe", "🧠"),
+            ("gastronomi", "Yemek Kültürü", "🍲"),
+            ("ilginc-bilgiler", "İlginç Bilgiler", "💡"),
+            ("bir-kelime", "Bir Kelime", "📖"),
+            ("cografya", "Coğrafya", "🗺️"),
+            ("efsaneler", "Efsaneler", "🐉"),
+            ("bir-siir", "Bir Şiir", "🪶"),
+            ("ruya-tabiri", "Rüya Tabiri", "🌙"),
+            ("faydali-bilgiler", "Faydalı Bilgiler", "✅"),
+            ("demografik-bilgiler", "Demografik Bilgiler", "📊"),
+            ("yer-adlari", "Yer Adları", "📍"),
+            ("sudoku", "Sudoku", "🔢"),
+            ("bulmaca", "Bulmaca", "🧩"),
+        };
+        int sort = 0;
+        foreach (var (slug, name, icon) in categoryDefs)
+        {
+            var c = new ContentCategory { Slug = slug, Name = name, Icon = icon, SortOrder = ++sort };
+            categories[slug] = c;
+            db.ContentCategories.Add(c);
+        }
+
+        // ---- İçerik öğeleri ----
+        void Item(string cat, string title, string body, int? month = null, int? day = null) =>
+            db.ContentItems.Add(new ContentItem
+            {
+                Category = categories[cat],
+                Title = title,
+                Body = body,
+                PinnedMonth = month,
+                PinnedDay = day,
+                CreatedAtUtc = DateTime.UtcNow,
+            });
+
+        // Özel günler — ay/güne sabitli
+        Item("ozel-gunler", "Yılbaşı", "Yeni yılınız kutlu olsun! (Bütçe yılı başlangıcı)", 1, 1);
+        Item("ozel-gunler", "Dünya Kadınlar Günü", "8 Mart Dünya Kadınlar Günü kutlu olsun.", 3, 8);
+        Item("ozel-gunler", "Ulusal Egemenlik ve Çocuk Bayramı", "TBMM'nin açılışı (1920). Çocuk bayramı kutlu olsun!", 4, 23);
+        Item("ozel-gunler", "Emek ve Dayanışma Günü", "1 Mayıs Emek ve Dayanışma Günü.", 5, 1);
+        Item("ozel-gunler", "Atatürk'ü Anma, Gençlik ve Spor Bayramı", "Atatürk'ün Samsun'a çıkışı (1919).", 5, 19);
+        Item("ozel-gunler", "Dünya Çevre Günü", "5 Haziran Dünya Çevre Günü.", 6, 5);
+        Item("ozel-gunler", "Zafer Bayramı", "Büyük Taarruz'un zaferle sonuçlanması (1922).", 8, 30);
+        Item("ozel-gunler", "Cumhuriyet Bayramı", "Cumhuriyet'in ilanı (1923). Bayramınız kutlu olsun!", 10, 29);
+        Item("ozel-gunler", "Atatürk'ü Anma Günü", "Gazi Mustafa Kemal Atatürk'ün ebediyete intikali (1938).", 11, 10);
+        Item("ozel-gunler", "Öğretmenler Günü", "24 Kasım Öğretmenler Günü kutlu olsun.", 11, 24);
+
+        // Biraz da felsefe
+        Item("biraz-da-felsefe", "Her An Felsefe",
+            "Düşünce dünyası geliştikçe felsefe üç büyük sorun üzerinde yoğunlaşmıştır: doğanın işleri, insanın işleri ve bu ikisi arasında üretken ilişkiler kurma çabası. Kendimize, dünyaya ve yapıp ettiklerimize dair her düşündüğümüzde aslında bir yanıyla felsefe yapmış oluruz.");
+        Item("biraz-da-felsefe", "Sokrates ve Bilgelik",
+            "Sokrates'e göre bilgeliğin başlangıcı, insanın bilmediğini bilmesidir. \"Sorgulanmamış hayat yaşanmaya değmez\" sözü, kendi hayatımızı düşünce süzgecinden geçirme çağrısıdır.");
+        Item("biraz-da-felsefe", "Stoacılık Üzerine",
+            "Stoacılar, elimizde olanla olmayanı ayırt etmeyi öğütler. Epiktetos'a göre bizi üzen şeyler değil, onlara yüklediğimiz anlamlardır. İç huzur, kontrol edemediklerimizi kabullenmekle başlar.");
+        Item("biraz-da-felsefe", "İbn Haldun ve Toplum",
+            "İbn Haldun, Mukaddime'de toplumların da canlılar gibi doğup büyüyüp yaşlandığını söyler. \"Coğrafya kaderdir\" sözüyle, insan topluluklarının yaşadıkları çevreden bağımsız düşünülemeyeceğini anlatır.");
+
+        // Gastronomi
+        Item("gastronomi", "Gastronom ve Gurme",
+            "Gastronomi, insanların yaşamlarını sürdürebilmeleri için gerekli olan beslenme konusunu araştıran bir bilim dalıdır. Bu işle ilgili araştırmalar yapan kişiye gastronom denir. Gastronomlar bir gurme değildir; gurmeler gibi öncelikle damak tadına odaklanmazlar, araştırma yaparak topluma yarar üretirler.");
+        Item("gastronomi", "Tarhananın Hikâyesi",
+            "Tarhana, Orta Asya'dan Anadolu'ya taşınan en eski hazır çorbalardan biridir. Yoğurt, un ve sebzelerin fermente edilmesiyle yapılır; kışın vitamin deposu olarak köy evlerinin vazgeçilmezidir.");
+        Item("gastronomi", "Kahvenin Anadolu Yolculuğu",
+            "Kahve, 16. yüzyılda Yemen'den İstanbul'a geldi ve kısa sürede kahvehane kültürünü doğurdu. \"Bir fincan kahvenin kırk yıl hatırı vardır\" sözü bu kültürün özetidir.");
+        Item("gastronomi", "Zeytinyağının Sırrı",
+            "Akdeniz mutfağının temeli zeytinyağı, soğuk sıkım ile elde edildiğinde aromasını ve besin değerini korur. Erken hasat (yeşil) zeytinden yapılan yağlar daha yüksek polifenol içerir.");
+
+        // İlginç bilgiler
+        Item("ilginc-bilgiler", "Bal Bozulmaz",
+            "Arkeologlar Mısır piramitlerinde 3000 yıllık, hâlâ yenilebilir durumda bal bulmuşlardır. Balın düşük nem ve asidik yapısı bakterilerin üremesine izin vermez.");
+        Item("ilginc-bilgiler", "Ahtapotların Üç Kalbi Vardır",
+            "Ahtapotların üç kalbi ve mavi kanı vardır. İki kalp solungaçlara, biri vücuda kan pompalar; yüzerken vücut kalbi durur, bu yüzden yüzmek onları çok yorar.");
+        Item("ilginc-bilgiler", "Işık Yılı Bir Zaman Değildir",
+            "Işık yılı zamanı değil mesafeyi ölçer: Işığın bir yılda aldığı yol, yaklaşık 9,46 trilyon kilometredir. Gökyüzüne baktığımızda aslında geçmişi görürüz.");
+        Item("ilginc-bilgiler", "Eyfel Kulesi Yazın Uzar",
+            "Demir sıcakta genleştiği için Eyfel Kulesi yaz aylarında 15 santimetreye kadar uzayabilir.");
+
+        // Bir kelime
+        Item("bir-kelime", "Yâren",
+            "Yâren: Yakın dost, arkadaş. Farsça kökenlidir. Anadolu'da \"yârenlik etmek\", dostça sohbet etmek anlamında yaşamaya devam eder.");
+        Item("bir-kelime", "Müteşekkir",
+            "Müteşekkir: Teşekkür borçlu, minnettar. Arapça \"şükr\" kökünden türemiştir. \"Size müteşekkirim\" demek, kalpten gelen bir teşekkürü ifade eder.");
+        Item("bir-kelime", "Gönül",
+            "Gönül: Sevgi, istek ve düşüncenin kaynağı sayılan iç dünya. Türkçenin en eski kelimelerinden biridir; \"gönül almak\", \"gönül vermek\" gibi onlarca deyim üretmiştir.");
+        Item("bir-kelime", "Hasbihâl",
+            "Hasbihâl: Hâl hatır sorma, içten sohbet. Arapça \"hasb\" (göre) ve \"hâl\" kelimelerinden oluşur; dertleşme anlamında kullanılır.");
+
+        // Coğrafya
+        Item("cografya", "Türkiye'nin En Uzun Nehri",
+            "Kızılırmak, 1.355 kilometre ile tamamı Türkiye sınırları içinde akan en uzun nehirdir. Sivas'tan doğar, geniş bir yay çizerek Bafra'da Karadeniz'e dökülür.");
+        Item("cografya", "Van Gölü",
+            "Van Gölü, 3.713 km² yüzölçümü ile Türkiye'nin en büyük gölüdür. Sodalı suyu sayesinde donmaz ve dünyada yalnızca burada yaşayan inci kefaline ev sahipliği yapar.");
+        Item("cografya", "İki Kıtada Bir Şehir",
+            "İstanbul, dünyada iki kıta üzerine kurulu tek metropoldür. Boğaz, Karadeniz'i Marmara'ya bağlarken Asya ile Avrupa'yı 700 metreye kadar yaklaştırır.");
+        Item("cografya", "Kapadokya'nın Oluşumu",
+            "Kapadokya'daki peribacaları, Erciyes ve Hasan Dağı'nın püskürttüğü küllerin milyonlarca yılda rüzgâr ve suyla aşınmasıyla oluşmuştur.");
+
+        // Efsaneler
+        Item("efsaneler", "Şahmeran Efsanesi",
+            "Yarı insan yarı yılan Şahmeran, yılanların bilge kraliçesidir. Tarsus'ta geçtiğine inanılan efsaneye göre sırrını dostu Camsap'a emanet etmiş, ihanete uğrasa da bilgeliğini insanlara şifa olarak bırakmıştır.");
+        Item("efsaneler", "Ağrı Dağı ve Nuh'un Gemisi",
+            "İnanışa göre büyük tufandan sonra Nuh'un gemisi Ağrı Dağı'na oturmuştur. Bu yüzden dağın eski adı \"Cudi-i Ararat\" olarak da anılır ve yüzyıllardır gemi kalıntısı arayanların rotasıdır.");
+        Item("efsaneler", "Kız Kulesi",
+            "Efsaneye göre kâhinler, kralın kızının bir yılan sokmasıyla öleceğini söyler. Kral, kızını denizin ortasındaki kuleye kapatır; ama kader, bir üzüm sepetinde gizlenen yılanla kuleye ulaşır.");
+
+        // Bir şiir
+        Item("bir-siir", "Yeni Yıl — Mahmut Boğa",
+            "Bir yaş daha büyüdük / Girdik yeni yıllara / On iki ay yürüdük / Vardık yeni yıllara // Koca bir yıl devrildi / Takvim başa çevrildi / Hoş geldi, safa geldi / Erdik yeni yıla...", 1, 1);
+        Item("bir-siir", "Otuz Beş Yaş — Cahit Sıtkı Tarancı (alıntı)",
+            "Yaş otuz beş! Yolun yarısı eder. / Dante gibi ortasındayız ömrün. / Delikanlı çağımızdaki cevher, / Yalvarmak, yakarmak nafile bugün, / Gözünün yaşına bakmadan gider.");
+        Item("bir-siir", "İstanbul'u Dinliyorum — Orhan Veli (alıntı)",
+            "İstanbul'u dinliyorum, gözlerim kapalı; / Önce hafiften bir rüzgâr esiyor; / Yavaş yavaş sallanıyor / Yapraklar ağaçlarda...");
+        Item("bir-siir", "Memleket İsterim — Cahit Külebi (alıntı)",
+            "Memleket isterim / Gök mavi, dal yeşil, tarla sarı olsun; / Kuşların çiçeklerin diyarı olsun.");
+
+        // Rüya tabiri
+        Item("ruya-tabiri", "Rüyada Su Görmek",
+            "Rüyada berrak su görmek ferahlığa, bereket ve huzura; bulanık su ise geçici sıkıntılara işaret eder. Akarsu, hayatın akışındaki değişimleri simgeler.");
+        Item("ruya-tabiri", "Rüyada Uçmak",
+            "Rüyada uçmak, özgürlük arzusuna ve hedeflere ulaşma isteğine yorulur. Yüksekten korkmadan uçmak, özgüvenin arttığına işarettir.");
+        Item("ruya-tabiri", "Rüyada Anahtar Görmek",
+            "Anahtar, kapalı kapıların açılmasına, sorunların çözülmesine ve yeni fırsatlara delalet eder.");
+
+        // Faydalı bilgiler
+        Item("faydali-bilgiler", "Limonun Tazeliğini Korumak",
+            "Kesilmiş limonu kapalı bir kapta, kesik yüzü aşağı gelecek şekilde saklarsanız bir hafta tazeliğini korur. Buzdolabında bütün limonlar 3-4 hafta dayanır.");
+        Item("faydali-bilgiler", "Mutluluk İçin 4 Adım",
+            "1- Hata yaptığınızı anladığınız zaman düzeltmek için derhal gerekli adımları atın. 2- İstediğinizi alamamanızın bazen ne kadar büyük bir şans olduğunu hatırlayın. 3- Her zaman değişime açık olun, değerlerinizin kaybolup gitmesine de izin vermeyin. 4- Sevgi dolu, sakin, düzenli bir ev yaratmak için elinizden gelen her şeyi yapın.");
+        Item("faydali-bilgiler", "Telefon Bataryası Ömrü",
+            "Lityum bataryalar %20-%80 arasında tutulduğunda en uzun ömrü sunar. Geceleri %100'de fişte bırakmak batarya kimyasını yorar.");
+        Item("faydali-bilgiler", "Doğru Su Tüketimi",
+            "Güne bir bardak suyla başlamak metabolizmayı harekete geçirir. Susama hissi, vücudun zaten su kaybettiğinin işaretidir; beklemeden için.");
+
+        // Demografik bilgiler
+        Item("demografik-bilgiler", "Türkiye Nüfusu",
+            "Türkiye nüfusu 85 milyonu aşmıştır. Nüfusun yarıdan fazlası 35 yaşın altındadır ve en kalabalık il, ülke nüfusunun yaklaşık beşte birini barındıran İstanbul'dur.");
+        Item("demografik-bilgiler", "Dünyada Şehirleşme",
+            "Dünya nüfusunun yarısından fazlası artık şehirlerde yaşıyor. 2050'de bu oranın üçte ikiye çıkması bekleniyor.");
+        Item("demografik-bilgiler", "Ortalama Yaşam Süresi",
+            "Bir asır önce 45 yıl civarında olan dünya ortalama yaşam süresi, bugün 73 yılı aşmıştır. Bunda en büyük pay temiz su, aşılar ve antibiyotiklerindir.");
+
+        // Yer adları
+        Item("yer-adlari", "İstanbul Adının Kökeni",
+            "İstanbul adının, Rumca \"eis tin polin\" (şehre doğru) ifadesinden geldiği kabul edilir. Şehir tarih boyunca Byzantion, Konstantinopolis ve İslambol gibi adlarla da anılmıştır.");
+        Item("yer-adlari", "Ankara'nın Adı",
+            "Ankara adının, Frigce \"Ankyra\" (gemi çapası) kelimesinden geldiği sanılmaktadır. Galatlar döneminden kalma bu ad, Roma sikkelerinde çapa figürüyle birlikte basılmıştır.");
+        Item("yer-adlari", "Anadolu Ne Demek?",
+            "Anadolu, Rumca \"Anatole\" yani \"güneşin doğduğu yer\" anlamına gelir. Türkçede halk arasında \"ana dolu\" söyleyişiyle bereketle özdeşleşmiştir.");
+
+        // Sudoku & Bulmaca (metin tabanlı günlük yapraklar)
+        Item("sudoku", "Günün Sudoku İpucu",
+            "Kolay seviye başlangıç: Önce 9 sayısının tamamlandığı blokları işaretleyin. Tek eksikli satır ve sütunlardan ilerlemek çözümü hızlandırır. Bugünün tohumlu bulmacası mobil uygulamada!");
+        Item("sudoku", "Sudoku Tekniği: Tek Aday",
+            "Bir hücreye yalnızca tek rakam yazılabiliyorsa o hücre \"tek aday\"dır. Tüm tabloyu taramadan önce tek adayları yerleştirin.");
+        Item("bulmaca", "Günün Sorusu",
+            "Hangi ay 28 gün çeker? — Cevap: Hepsi! Tüm aylar en az 28 gün çeker.");
+        Item("bulmaca", "Zekâ Sorusu",
+            "Bir babanın 5 kızı var: Nana, Nene, Nini, Nono... Beşinci kızın adı ne? — Cevap: Soruyu dikkatli okuyun: \"Beşinci kızın adı NE\"dir.");
+
+        // ---- Geçmişte bugün ----
+        void History(int month, int day, int year, string text) =>
+            db.HistoryEvents.Add(new HistoryEvent { Month = month, Day = day, Year = year, Text = text });
+
+        History(1, 1, 1959, "Küba'da Fidel Castro önderliğindeki devrim zafere ulaştı; diktatör Batista ülkeyi terk etti.");
+        History(1, 1, 1926, "Türkiye'de miladi takvim ve uluslararası saat uygulaması başladı.");
+        History(3, 18, 1915, "Çanakkale Deniz Zaferi kazanıldı.");
+        History(4, 23, 1920, "Türkiye Büyük Millet Meclisi Ankara'da açıldı.");
+        History(5, 19, 1919, "Mustafa Kemal Paşa, Bandırma Vapuru ile Samsun'a çıktı; Millî Mücadele başladı.");
+        History(5, 29, 1453, "İstanbul, Fatih Sultan Mehmet komutasındaki Osmanlı ordusu tarafından fethedildi.");
+        History(6, 5, 1972, "Birleşmiş Milletler ilk Dünya Çevre Konferansı'nı Stockholm'de topladı; 5 Haziran Dünya Çevre Günü ilan edildi.");
+        History(6, 9, 1934, "Çizgi film karakteri Donald Duck, \"The Wise Little Hen\" filmiyle ilk kez izleyici karşısına çıktı.");
+        History(6, 10, 1940, "İtalya, İngiltere ve Fransa'ya savaş ilan ederek İkinci Dünya Savaşı'na girdi.");
+        History(6, 10, 2003, "NASA, Mars yüzeyini keşfedecek olan Spirit aracını uzaya fırlattı.");
+        History(6, 11, 1942, "ABD ile Sovyetler Birliği arasında savaş yardımlaşması anlaşması imzalandı.");
+        History(6, 11, 2010, "Güney Afrika'da düzenlenen FIFA Dünya Kupası, kıtanın ev sahipliği yaptığı ilk dünya kupası olarak başladı.");
+        History(7, 20, 1969, "Apollo 11 göreviyle Neil Armstrong, Ay'a ayak basan ilk insan oldu.");
+        History(8, 26, 1071, "Malazgirt Zaferi: Sultan Alparslan, Bizans ordusunu yenerek Anadolu'nun kapılarını açtı.");
+        History(8, 30, 1922, "Büyük Taarruz, Başkomutanlık Meydan Muharebesi ile zafere ulaştı.");
+        History(10, 29, 1923, "Cumhuriyet ilan edildi; Mustafa Kemal Paşa ilk Cumhurbaşkanı seçildi.");
+        History(11, 10, 1938, "Gazi Mustafa Kemal Atatürk, Dolmabahçe Sarayı'nda hayata gözlerini yumdu.");
+        History(12, 17, 1903, "Wright kardeşler, motorlu bir uçakla tarihteki ilk kontrollü uçuşu gerçekleştirdi.");
+
+        // ---- Özlü sözler ----
+        void Q(string text, string? author) => db.Quotes.Add(new Quote { Text = text, Author = author });
+
+        Q("Bir millet, savaş meydanlarında ne kadar parlak zaferler elde ederse etsin, o zaferlerin yaşayacak neticeler vermesi ancak irfan ordusuyla kaimdir.", "Mustafa Kemal Atatürk");
+        Q("Erdem servetlerin en büyüğüdür.", "Naci Kasım");
+        Q("Güzellik kısa ömürlü bir istibdattır.", "George B. Shaw");
+        Q("Hayatta en hakiki mürşit ilimdir.", "Mustafa Kemal Atatürk");
+        Q("Bilgi, paylaşıldıkça çoğalan tek hazinedir.", null);
+        Q("Az söyle, çok dinle; bir gün dinlediklerin konuştuklarını süsler.", "Mevlâna");
+        Q("Damlaya damlaya göl olur.", "Atasözü");
+        Q("Kaybettiğin her dakika, bir daha geri gelmeyecek bir ömür parçasıdır.", null);
+        Q("Ne kadar bilirsen bil, söylediklerin karşındakinin anlayabildiği kadardır.", "Mevlâna");
+        Q("Sabır acıdır, meyvesi tatlıdır.", "Atasözü");
+        Q("İyi olduğunuz için herkesin size adil davranmasını beklemek, vejetaryen olduğunuz için boğanın saldırmayacağını düşünmeye benzer.", "Dennis Wholey");
+        Q("Okumak, bir insanı doldurur; konuşmak hazırlar; yazmak ise olgunlaştırır.", "Francis Bacon");
+
+        // ---- İsimler ----
+        void N(string name, string gender, string meaning) =>
+            db.BabyNames.Add(new BabyName { Name = name, Gender = gender, Meaning = meaning });
+
+        N("İzel", "K", "Çok güzel, eşsiz");
+        N("Elif", "K", "Arap alfabesinin ilk harfi; ince, narin");
+        N("Defne", "K", "Yapraklarını dökmeyen güzel kokulu ağaç");
+        N("Zeynep", "K", "Değerli taşlar, mücevher");
+        N("Asel", "K", "Bal");
+        N("Duru", "K", "Saf, berrak");
+        N("Nehir", "K", "Akarsu, ırmak");
+        N("Miray", "K", "Ayın yansıması gibi parlak");
+        N("Azra", "K", "El değmemiş, kusursuz");
+        N("İpek", "K", "İpek böceğinin ürettiği değerli iplik gibi yumuşak");
+        N("Acun", "E", "Dünya, kâinat");
+        N("Yiğit", "E", "Cesur, kahraman");
+        N("Emir", "E", "Yöneten, buyruk veren");
+        N("Aras", "E", "Doğu Anadolu'dan doğan nehir");
+        N("Kerem", "E", "Cömertlik, soyluluk");
+        N("Demir", "E", "Güçlü, sağlam");
+        N("Çınar", "E", "Uzun ömürlü, ulu ağaç");
+        N("Atlas", "E", "Dünyayı omuzlarında taşıyan titan; ipekli kumaş");
+        N("Mert", "E", "Sözünün eri, yürekli");
+        N("Alp", "E", "Kahraman, yiğit savaşçı");
+
+        // ---- Blog ----
+        var blogCats = new Dictionary<string, BlogCategory>();
+        foreach (var (slug, name) in new[]
+                 {
+                     ("onemli-sahsiyetler", "Önemli Şahsiyetler"),
+                     ("tarihi-olaylar", "Tarihi Olaylar"),
+                     ("sehirler", "Şehirler"),
+                     ("faydali-bilgiler", "Faydalı Bilgiler"),
+                     ("haritalar", "Haritalar"),
+                 })
+        {
+            var c = new BlogCategory { Slug = slug, Name = name };
+            blogCats[slug] = c;
+            db.BlogCategories.Add(c);
+        }
+
+        void Post(string cat, string slug, string title, string summary, string body) =>
+            db.BlogPosts.Add(new BlogPost
+            {
+                Category = blogCats[cat],
+                Slug = slug,
+                Title = title,
+                Summary = summary,
+                Body = body,
+                IsPublished = true,
+                PublishedAtUtc = DateTime.UtcNow,
+                CreatedAtUtc = DateTime.UtcNow,
+            });
+
+        Post("onemli-sahsiyetler", "mimar-sinan", "Mimar Sinan: Taşın Şairi",
+            "Üç padişaha baş mimarlık yapan Sinan'ın hayatı ve eserleri.",
+            "Mimar Sinan (1489-1588), Osmanlı mimarisinin zirve ismidir. Kayseri'de doğdu, devşirme olarak Yeniçeri Ocağı'na girdi ve baş mimarlığa kadar yükseldi.\n\nÇıraklık eserim dediği Şehzade Camii, kalfalık eserim dediği Süleymaniye ve ustalık eserim dediği Edirne Selimiye, mimarlık tarihinin başyapıtları arasındadır. 84 cami, 52 mescit, 57 medrese ve onlarca köprü, kervansaray ve hamam inşa etmiştir.");
+        Post("tarihi-olaylar", "istanbulun-fethi", "İstanbul'un Fethi: Bir Çağın Kapanışı",
+            "29 Mayıs 1453'te İstanbul'un fethi ve dünya tarihine etkileri.",
+            "29 Mayıs 1453 sabahı, 21 yaşındaki II. Mehmet'in ordusu 53 günlük kuşatmanın ardından surları aştı. Orta Çağ kapandı, Yeni Çağ başladı.\n\nGemilerin karadan yürütülmesi, şahi toplarının dökümü ve Haliç'e kurulan köprü, kuşatmanın efsaneleşen unsurlarıdır.");
+        Post("sehirler", "mardin", "Mardin: Taş Evlerin Şehri",
+            "Mezopotamya ovasına bakan taş şehir Mardin'in hikâyesi.",
+            "Mardin, Mezopotamya ovasına tepeden bakan kadim bir şehirdir. Sarı kalker taşından oyulmuş evleri, daracık sokakları ve abbaraları ile açık hava müzesi gibidir.\n\nDeyrulzafaran Manastırı, Kasımiye Medresesi ve Ulu Cami, şehrin çok kültürlü geçmişinin tanıklarıdır.");
+        Post("faydali-bilgiler", "su-tasarrufu", "Evde Su Tasarrufunun 10 Yolu",
+            "Küçük alışkanlık değişiklikleriyle su faturanızı düşürün.",
+            "1. Diş fırçalarken musluğu kapatın (günde 12 litre tasarruf).\n2. Damlatan muslukları onarın.\n3. Bulaşık makinesini tam doldurmadan çalıştırmayın.\n4. Duş süresini 5 dakikaya indirin.\n5. Sebzeleri akan suda değil, kapta yıkayın...");
+        Post("haritalar", "piri-reis-haritasi", "Piri Reis Haritası'nın Sırrı",
+            "1513 tarihli dünya haritasının bilinmeyenleri.",
+            "Piri Reis'in 1513'te çizdiği dünya haritası, Amerika kıyılarını gösteren en eski haritalardan biridir. Ceylan derisi üzerine çizilen harita, 1929'da Topkapı Sarayı'nda bulunmuştur.\n\nHaritanın kenar notlarında Piri Reis, Kristof Kolomb'un haritası dahil 20'den fazla kaynaktan yararlandığını yazar.");
+
+        // ---- Forum başlangıç konusu ----
+        db.ForumTopics.Add(new ForumTopic
+        {
+            Title = "BTTakvim'e hoş geldiniz!",
+            Body = "Takvim yaprakları ve blog yazıları hakkındaki tartışmalarınızı burada bulabilir, yeni konular açabilirsiniz.",
+            AuthorName = "BTTakvim",
+            DeviceKey = "system",
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+
+        // ---- Admin ----
+        db.AdminUsers.Add(new AdminUser
+        {
+            Email = "admin@bttakvim.local",
+            Name = "Yönetici",
+            // Geliştirme için: "admin123!" — Faz 4'te gerçek auth ile değiştirilecek.
+            PasswordHash = BCryptLitePlaceholder("admin123!"),
+        });
+
+        await db.SaveChangesAsync();
+    }
+
+    // Faz 4'te gerçek parola karması (BCrypt/Argon2) ile değiştirilecek.
+    private static string BCryptLitePlaceholder(string password) =>
+        Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes("bttakvim-salt::" + password)));
+}
