@@ -6,13 +6,20 @@ import type {
   Leaf, PrayerTimes, ReactionKind, ReactionStatus, TargetType,
 } from './types';
 
+/** Üretim (yayınlanan derleme) backend adresi. */
+const PROD_API_URL = 'https://testapi.batitrakyatakvimi.com';
+
 /**
- * API adresi: EXPO_PUBLIC_API_URL verilmişse o; yoksa Metro'nun çalıştığı
- * makinenin IP'si (fiziksel cihazda da çalışsın diye) + backend portu 5210.
+ * API adresi seçimi:
+ *  1. EXPO_PUBLIC_API_URL verilmişse her zaman o (override).
+ *  2. Üretim derlemesinde (__DEV__ false) PROD_API_URL.
+ *  3. Geliştirmede Metro'nun çalıştığı makinenin IP'si + :5210
+ *     (fiziksel cihazda yerel backend'e ulaşmak için).
  */
 function resolveApiBase(): string {
   const env = process.env.EXPO_PUBLIC_API_URL;
   if (env) return env.replace(/\/$/, '');
+  if (!__DEV__) return PROD_API_URL;
   const hostUri: string | undefined =
     (Constants.expoConfig as any)?.hostUri ?? (Constants as any).manifest2?.extra?.expoGo?.debuggerHost;
   const host = hostUri?.split(':')[0] || 'localhost';
