@@ -51,6 +51,9 @@ npm run dev          # http://localhost:5173
 
 Backend `localhost:5210`'da değilse: `web/.env` içine `VITE_API_URL=http://...:5210`.
 
+**Admin paneli:** `http://localhost:5173/admin` · geliştirme girişi `admin@bttakvim.local` / `admin123!`
+(kategori, içerik, geçmişte bugün, blog, yaprak sıfırlama, moderasyon, ayarlar yönetimi).
+
 ## Temel kurallar
 
 - Yaprak, bir tarih **ilk kez ziyaret edildiğinde** üretilir ve veritabanına yazılır; bir daha değişmez.
