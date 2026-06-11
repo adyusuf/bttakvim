@@ -1,3 +1,4 @@
+using System.Text.Json;
 using BTTakvim.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -210,20 +211,10 @@ public static class DbSeeder
         History(12, 17, 1903, "Wright kardeşler, motorlu bir uçakla tarihteki ilk kontrollü uçuşu gerçekleştirdi.");
 
         // ---- Özlü sözler ----
-        void Q(string text, string? author) => db.Quotes.Add(new Quote { Text = text, Author = author });
-
-        Q("Bir millet, savaş meydanlarında ne kadar parlak zaferler elde ederse etsin, o zaferlerin yaşayacak neticeler vermesi ancak irfan ordusuyla kaimdir.", "Mustafa Kemal Atatürk");
-        Q("Erdem servetlerin en büyüğüdür.", "Naci Kasım");
-        Q("Güzellik kısa ömürlü bir istibdattır.", "George B. Shaw");
-        Q("Hayatta en hakiki mürşit ilimdir.", "Mustafa Kemal Atatürk");
-        Q("Bilgi, paylaşıldıkça çoğalan tek hazinedir.", null);
-        Q("Az söyle, çok dinle; bir gün dinlediklerin konuştuklarını süsler.", "Mevlâna");
-        Q("Damlaya damlaya göl olur.", "Atasözü");
-        Q("Kaybettiğin her dakika, bir daha geri gelmeyecek bir ömür parçasıdır.", null);
-        Q("Ne kadar bilirsen bil, söylediklerin karşındakinin anlayabildiği kadardır.", "Mevlâna");
-        Q("Sabır acıdır, meyvesi tatlıdır.", "Atasözü");
-        Q("İyi olduğunuz için herkesin size adil davranmasını beklemek, vejetaryen olduğunuz için boğanın saldırmayacağını düşünmeye benzer.", "Dennis Wholey");
-        Q("Okumak, bir insanı doldurur; konuşmak hazırlar; yazmak ise olgunlaştırır.", "Francis Bacon");
+        // Toplu, küratörlü "günün sözü" veri kümesi Data/Seed/quotes.json dosyasından
+        // yüklenir (atasözleri + kaynağı sağlam vecizeler). Tablo boşken metne göre
+        // tekilleştirilerek eklenir; dosya okunamazsa küçük bir gömülü liste kullanılır.
+        SeedQuotes(db);
 
         // ---- İsimler ----
         void N(string name, string gender, string meaning) =>
@@ -366,4 +357,65 @@ public static class DbSeeder
         M("Anadolu Sofrası", "Düğün çorbası, Karnıyarık, Bulgur pilavı, Ayran");
         M("Deniz Sofrası", "Balık çorbası, Fırında levrek, Roka salatası, Cevizli baklava");
     }
+
+    private sealed record QuoteSeed(string Text, string? Author);
+
+    /// <summary>
+    /// "Günün sözü" verisini Data/Seed/quotes.json dosyasından idempotent yükler.
+    /// Yalnızca Quotes tablosu boşken ekler; metne göre tekilleştirir. Dosya
+    /// okunamaz/ayrıştırılamazsa küçük bir gömülü liste devreye girer.
+    /// </summary>
+    private static void SeedQuotes(AppDbContext db)
+    {
+        // Tablo boş değilse dokunma (idempotentlik koruması).
+        if (db.Quotes.Local.Count > 0 || db.Quotes.Any()) return;
+
+        var quotes = LoadQuotesFromFile() ?? FallbackQuotes();
+
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var q in quotes)
+        {
+            var text = q.Text?.Trim();
+            if (string.IsNullOrWhiteSpace(text)) continue;
+            if (!seen.Add(text)) continue; // metne göre tekilleştir
+
+            var author = string.IsNullOrWhiteSpace(q.Author) ? null : q.Author.Trim();
+            db.Quotes.Add(new Quote { Text = text, Author = author });
+        }
+    }
+
+    private static List<QuoteSeed>? LoadQuotesFromFile()
+    {
+        try
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "Data", "Seed", "quotes.json");
+            if (!File.Exists(path)) return null;
+
+            var json = File.ReadAllText(path);
+            var quotes = JsonSerializer.Deserialize<List<QuoteSeed>>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+            });
+
+            return quotes is { Count: > 0 } ? quotes : null;
+        }
+        catch
+        {
+            // Bozuk/okunamayan dosyada sessizce gömülü listeye düş.
+            return null;
+        }
+    }
+
+    /// <summary>Dosya yüklenemezse kullanılan asgari gömülü liste (atasözleri).</summary>
+    private static List<QuoteSeed> FallbackQuotes() =>
+    [
+        new("Damlaya damlaya göl olur.", "Atasözü"),
+        new("Sabır acıdır, meyvesi tatlıdır.", "Atasözü"),
+        new("Bilmemek ayıp değil, öğrenmemek ayıptır.", "Atasözü"),
+        new("Ne ekersen onu biçersin.", "Atasözü"),
+        new("Tatlı dil yılanı deliğinden çıkarır.", "Atasözü"),
+        new("Hayatta en hakiki mürşit ilimdir.", "Mustafa Kemal Atatürk"),
+        new("Sevelim, sevilelim; bu dünya kimseye kalmaz.", "Yunus Emre"),
+        new("Bilgi paylaşıldıkça çoğalan tek hazinedir.", null),
+    ];
 }
