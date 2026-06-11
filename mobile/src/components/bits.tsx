@@ -35,25 +35,29 @@ export function Label({
   );
 }
 
-/** Altın tezhip ayracı: solan çizgi + elmas + lotus + elmas + solan çizgi. */
-export function Ornament({ style }: { style?: ViewStyle }) {
-  const { colors } = useTheme();
-  const Diamond = ({ s = 5 }: { s?: number }) => (
+/** Tezhip elması — 45° döndürülmüş küçük dolu kare. */
+function Diamond({ s = 5, color }: { s?: number; color: string }) {
+  return (
     <View
       style={{
         width: s,
         height: s,
-        backgroundColor: colors.gold0,
+        backgroundColor: color,
         transform: [{ rotate: '45deg' }],
       }}
     />
   );
+}
+
+/** Altın tezhip ayracı: solan çizgi + elmas + lotus + elmas + solan çizgi. */
+export function Ornament({ style }: { style?: ViewStyle }) {
+  const { colors } = useTheme();
   return (
     <View style={[styles.ornamentRow, style]}>
       <View style={[styles.ornamentLine, { backgroundColor: colors.ruleGold }]} />
-      <Diamond />
+      <Diamond color={colors.gold0} />
       <FlowerLotus size={14} color={colors.gold0} weight="fill" />
-      <Diamond />
+      <Diamond color={colors.gold0} />
       <View style={[styles.ornamentLine, { backgroundColor: colors.ruleGold }]} />
     </View>
   );

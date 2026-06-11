@@ -2,7 +2,7 @@ import {
   ChartBar, FileText, Gear, Newspaper, Scroll, SignOut, Stack, Tag, WarningCircle,
 } from '@phosphor-icons/react';
 import { NavLink, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
-import { useAdminAuth } from './auth';
+import { useAdminAuth } from './auth-context';
 import { AdminLogin } from './Login';
 import { Dashboard } from './pages/Dashboard';
 import { Categories } from './pages/Categories';

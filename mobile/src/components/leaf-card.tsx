@@ -1,5 +1,5 @@
 /** Çevrilebilir yaprak — 3B rotateY + altın köşebent çerçeve (Tweaks: çerçeve/kubbe/madalyon). */
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Animated, Easing, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ArrowClockwise, ArrowCounterClockwise } from 'phosphor-react-native';
 import { fonts, useTheme } from '@/lib/theme';
@@ -139,7 +139,8 @@ export function LeafCard({
   back: React.ReactNode;
 }) {
   const { colors, prefs } = useTheme();
-  const anim = useRef(new Animated.Value(flipped ? 1 : 0)).current;
+  // Stable Animated.Value held in state (lazy init) so render can read it without touching a ref's .current.
+  const [anim] = useState(() => new Animated.Value(flipped ? 1 : 0));
 
   useEffect(() => {
     Animated.timing(anim, {

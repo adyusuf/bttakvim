@@ -2,7 +2,7 @@ import { PushPin } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import { fetchLeaf, fetchPrayerTimes } from '../lib/api';
 import { todayIso } from '../lib/dates';
-import { useStore } from '../lib/store';
+import { useStore } from '../lib/store-context';
 import type { Leaf, PrayerTimes } from '../lib/types';
 import { LeafBack, LeafFront } from './Leaf';
 

@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { Rosette } from '../components/leaf-bits';
 import { fetchLeaf, fetchPrayerTimes } from '../lib/api';
 import { formatLongDate, todayIso } from '../lib/dates';
-import { useStore } from '../lib/store';
+import { useStore } from '../lib/store-context';
 import type { Leaf, PrayerTimes } from '../lib/types';
 
 const VAKIT: { key: keyof PrayerTimes['times']; ad: string; Ikon: PhosphorIcon }[] = [

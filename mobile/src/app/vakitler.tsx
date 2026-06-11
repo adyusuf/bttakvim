@@ -24,15 +24,27 @@ function remainingText(time: string): string {
 export default function VakitlerScreen() {
   const { colors } = useTheme();
   const { cities, location, selectCity, useGps, cityName } = useAppState();
-  const [prayer, setPrayer] = useState<PrayerTimes | null>(null);
+
+  // Vakitler, hangi konum için yüklendiği bilgisiyle birlikte tutulur; konum
+  // değişince eski veri (key uyuşmazlığı) otomatik olarak null'a düşer ve spinner görünür.
+  const locationKey =
+    location.kind === 'city' ? `city:${location.slug}` : `gps:${location.lat},${location.lng}`;
+  const [prayerState, setPrayerState] = useState<{ key: string; prayer: PrayerTimes } | null>(null);
+  const prayer = prayerState?.key === locationKey ? prayerState.prayer : null;
 
   useEffect(() => {
-    setPrayer(null);
+    let alive = true;
     fetchPrayerTimes(
       todayIso(),
       location.kind === 'city' ? { citySlug: location.slug } : { lat: location.lat, lng: location.lng },
-    ).then(setPrayer);
-  }, [location]);
+    ).then((r) => {
+      if (!alive) return;
+      setPrayerState({ key: locationKey, prayer: r });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [location, locationKey]);
 
   const siradaki = prayer ? nextVakit(prayer, todayIso()) : null;
   const siradakiTanim = VAKIT_TANIM.find((v) => v.key === siradaki);

@@ -1,6 +1,6 @@
 import { Crown, PaintBrushHousehold } from '@phosphor-icons/react';
 import { useState } from 'react';
-import { useStore } from '../lib/store';
+import { useStore } from '../lib/store-context';
 
 const PALETTES = [
   { id: 'osmanli', name: 'Osmanlı Çini', sw: ['#A3271D', '#1E3F8F', '#A97E22', '#1F6F54'] },

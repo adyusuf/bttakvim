@@ -1,7 +1,8 @@
 import { Pencil, Plus, Trash } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import { adminApi } from '../api';
-import { Field, Modal, useAsyncAction } from '../ui';
+import { Field, Modal } from '../ui';
+import { useAsyncAction } from '../useAsyncAction';
 
 interface BlogCategory { id: number; slug: string; name: string; }
 interface Post {

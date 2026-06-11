@@ -1,7 +1,8 @@
 /** Paylaşılan durum: şehir, şehir listesi, palet/Tweaks tercihleri. */
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { fetchCities } from './api';
 import type { CityRef } from './types';
+import { StoreContext } from './store-context';
 
 export interface Prefs {
   paletteId: string;
@@ -11,17 +12,6 @@ export interface Prefs {
 }
 
 const DEFAULT_PREFS: Prefs = { paletteId: 'osmanli', frame: 'altin', dome: true, medallion: true };
-
-interface Store {
-  cities: CityRef[];
-  citySlug: string;
-  setCity: (slug: string) => void;
-  cityName: string;
-  prefs: Prefs;
-  setPrefs: (p: Partial<Prefs>) => void;
-}
-
-const Ctx = createContext<Store>(null as unknown as Store);
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [cities, setCities] = useState<CityRef[]>([]);
@@ -64,10 +54,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const cityName = cities.find((c) => c.slug === citySlug)?.name ?? 'İstanbul';
 
   return (
-    <Ctx.Provider value={{ cities, citySlug, setCity, cityName, prefs, setPrefs }}>
+    <StoreContext.Provider value={{ cities, citySlug, setCity, cityName, prefs, setPrefs }}>
       {children}
-    </Ctx.Provider>
+    </StoreContext.Provider>
   );
 }
-
-export const useStore = () => useContext(Ctx);

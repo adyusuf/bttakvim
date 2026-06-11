@@ -2,8 +2,10 @@ import { CaretRight, Clock, FacebookLogo, Feather, LinkSimple, WhatsappLogo, XLo
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Comments } from '../components/Comments';
-import { DEMO_MAPS, InteractiveMap } from '../components/InteractiveMap';
-import { Kapak, catColor } from '../components/Kapak';
+import { InteractiveMap } from '../components/InteractiveMap';
+import { DEMO_MAPS } from '../components/InteractiveMap.data';
+import { Kapak } from '../components/Kapak';
+import { catColor } from '../components/catColor';
 import { LeafAside } from '../components/LeafAside';
 import { ReactionBar } from '../components/ReactionBar';
 import { fetchBlogPost, fetchBlogPosts } from '../lib/api';
