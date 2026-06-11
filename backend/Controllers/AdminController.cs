@@ -1,6 +1,7 @@
 using BTTakvim.Api.Data;
 using BTTakvim.Api.Models;
 using BTTakvim.Api.Services;
+using BTTakvim.Api.Services.Providers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,12 @@ namespace BTTakvim.Api.Controllers;
 [ApiController]
 [Route("api/admin")]
 [Authorize(Roles = "admin")]
-public class AdminController(AppDbContext db, LeafService leafService, IntegrationCallLog integrationLog) : ControllerBase
+public class AdminController(
+    AppDbContext db,
+    LeafService leafService,
+    IntegrationCallLog integrationLog,
+    IHijriDateProvider hijriProvider,
+    TurkishCalendarService calendar) : ControllerBase
 {
     // ---- Özet (dashboard) ----
 
@@ -38,6 +44,35 @@ public class AdminController(AppDbContext db, LeafService leafService, Integrati
         summary = integrationLog.Summary(),
         entries = integrationLog.Recent(n ?? 200),
     });
+
+    /// <summary>
+    /// Yerel (UmAlQura) hicrî tarihi, Aladhan gToH (dış API) hicrî tarihiyle karşılaştırır.
+    /// Aladhan çağrısı IntegrationCallLog'a kaydedilir (entegrasyon izleme panelinde görünür).
+    /// Yaprak üretimi bundan etkilenmez; bu uçnokta yalnızca kalibrasyon/sürüklenme görünürlüğü
+    /// içindir. <paramref name="date"/> verilmezse İstanbul saatine göre bugün kullanılır.
+    /// </summary>
+    [HttpGet("hijri-check")]
+    public async Task<IActionResult> HijriCheck([FromQuery] string? date, CancellationToken ct)
+    {
+        DateOnly d;
+        if (string.IsNullOrWhiteSpace(date))
+            d = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(3)); // İstanbul (UTC+3)
+        else if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", out d))
+            return BadRequest(new { error = "Tarih biçimi yyyy-MM-dd olmalı." });
+
+        var local = calendar.GetHijri(d);
+        var aladhan = await hijriProvider.GetHijriAsync(d, ct);
+
+        int driftDays = Math.Abs(local.Day - aladhan.Day);
+
+        return Ok(new
+        {
+            date = d.ToString("yyyy-MM-dd"),
+            local = new { local.Day, local.MonthName, local.Year },
+            aladhan = new { aladhan.Day, aladhan.MonthName, aladhan.Year },
+            driftDays,
+        });
+    }
 
     // ---- Yapraklar ----
 
@@ -221,10 +256,21 @@ public class AdminController(AppDbContext db, LeafService leafService, Integrati
 
     public record QuoteRequest(string Text, string? Author, bool IsActive);
 
+    /// <summary>Söz girdisini doğrular: boş metin reddedilir, 1000 karakterle sınırlıdır.</summary>
+    private BadRequestObjectResult? ValidateQuote(QuoteRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.Text))
+            return BadRequest(new { error = "Söz metni boş olamaz." });
+        if (req.Text.Trim().Length > 1000)
+            return BadRequest(new { error = "Söz metni en fazla 1000 karakter olabilir." });
+        return null;
+    }
+
     [HttpPost("quotes")]
     public async Task<IActionResult> CreateQuote([FromBody] QuoteRequest req, CancellationToken ct)
     {
-        var quote = new Quote { Text = req.Text, Author = req.Author, IsActive = req.IsActive };
+        if (ValidateQuote(req) is { } err) return err;
+        var quote = new Quote { Text = req.Text.Trim(), Author = req.Author, IsActive = req.IsActive };
         db.Quotes.Add(quote);
         await db.SaveChangesAsync(ct);
         return Ok(new { quote.Id, quote.Text, quote.Author, quote.IsActive });
@@ -233,9 +279,10 @@ public class AdminController(AppDbContext db, LeafService leafService, Integrati
     [HttpPut("quotes/{id:int}")]
     public async Task<IActionResult> UpdateQuote(int id, [FromBody] QuoteRequest req, CancellationToken ct)
     {
+        if (ValidateQuote(req) is { } err) return err;
         var quote = await db.Quotes.FindAsync([id], ct);
         if (quote is null) return NotFound();
-        quote.Text = req.Text; quote.Author = req.Author; quote.IsActive = req.IsActive;
+        quote.Text = req.Text.Trim(); quote.Author = req.Author; quote.IsActive = req.IsActive;
         await db.SaveChangesAsync(ct);
         return Ok(new { quote.Id, quote.Text, quote.Author, quote.IsActive });
     }
@@ -257,7 +304,7 @@ public class AdminController(AppDbContext db, LeafService leafService, Integrati
     {
         var query = db.BabyNames.AsQueryable();
         if (gender is "K" or "E") query = query.Where(n => n.Gender == gender);
-        if (!string.IsNullOrWhiteSpace(q)) query = query.Where(n => n.Name.Contains(q));
+        if (!string.IsNullOrWhiteSpace(q)) query = query.Where(n => EF.Functions.ILike(n.Name, $"%{q}%"));
         return Ok(await query.OrderByDescending(n => n.Id)
             .Select(n => new { n.Id, n.Name, n.Gender, n.Meaning, n.IsActive })
             .ToListAsync(ct));
@@ -276,12 +323,23 @@ public class AdminController(AppDbContext db, LeafService leafService, Integrati
 
     public record BabyNameRequest(string Name, string Gender, string? Meaning, bool IsActive);
 
+    /// <summary>İsim girdisini doğrular: boş ad reddedilir (100 karakter sınırı), cinsiyet K/E olmalı.</summary>
+    private BadRequestObjectResult? ValidateName(BabyNameRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.Name))
+            return BadRequest(new { error = "İsim boş olamaz." });
+        if (req.Name.Trim().Length > 100)
+            return BadRequest(new { error = "İsim en fazla 100 karakter olabilir." });
+        if (req.Gender is not ("K" or "E"))
+            return BadRequest(new { error = "Cinsiyet K veya E olmalı." });
+        return null;
+    }
+
     [HttpPost("names")]
     public async Task<IActionResult> CreateName([FromBody] BabyNameRequest req, CancellationToken ct)
     {
-        if (req.Gender is not ("K" or "E"))
-            return BadRequest(new { error = "Cinsiyet K veya E olmalı." });
-        var name = new BabyName { Name = req.Name, Gender = req.Gender, Meaning = req.Meaning, IsActive = req.IsActive };
+        if (ValidateName(req) is { } err) return err;
+        var name = new BabyName { Name = req.Name.Trim(), Gender = req.Gender, Meaning = req.Meaning, IsActive = req.IsActive };
         db.BabyNames.Add(name);
         await db.SaveChangesAsync(ct);
         return Ok(new { name.Id, name.Name, name.Gender, name.Meaning, name.IsActive });
@@ -290,11 +348,10 @@ public class AdminController(AppDbContext db, LeafService leafService, Integrati
     [HttpPut("names/{id:int}")]
     public async Task<IActionResult> UpdateName(int id, [FromBody] BabyNameRequest req, CancellationToken ct)
     {
-        if (req.Gender is not ("K" or "E"))
-            return BadRequest(new { error = "Cinsiyet K veya E olmalı." });
+        if (ValidateName(req) is { } err) return err;
         var name = await db.BabyNames.FindAsync([id], ct);
         if (name is null) return NotFound();
-        name.Name = req.Name; name.Gender = req.Gender; name.Meaning = req.Meaning; name.IsActive = req.IsActive;
+        name.Name = req.Name.Trim(); name.Gender = req.Gender; name.Meaning = req.Meaning; name.IsActive = req.IsActive;
         await db.SaveChangesAsync(ct);
         return Ok(new { name.Id, name.Name, name.Gender, name.Meaning, name.IsActive });
     }

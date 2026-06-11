@@ -21,6 +21,9 @@ builder.Services.AddControllers().AddJsonOptions(o =>
 builder.Services.AddSingleton<TurkishCalendarService>();
 builder.Services.AddSingleton<IMoonPhaseProvider, AstronomicalMoonPhaseProvider>();
 builder.Services.AddHttpClient();
+// Aladhan dış API'leri için 5sn zaman aşımlı adlandırılmış istemci (timeout kayıtta bir kez
+// ayarlanır; SINGLETON sağlayıcılar eşzamanlılık altında .Timeout mutasyonu yapmamalı).
+builder.Services.AddHttpClient("aladhan", c => c.Timeout = TimeSpan.FromSeconds(5));
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<IntegrationCallLog>();
 builder.Services.AddSingleton<IPrayerTimesProvider, AladhanPrayerTimesProvider>();

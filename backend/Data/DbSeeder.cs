@@ -303,6 +303,8 @@ public static class DbSeeder
     /// </summary>
     private static async Task EnsureAdditionsAsync(AppDbContext db)
     {
+        await EnsureSettingsAsync(db);
+
         if (await db.ContentCategories.AnyAsync(c => c.Slug == "gunun-sohbeti")) return;
 
         var maxSort = await db.ContentCategories.MaxAsync(c => (int?)c.SortOrder) ?? 0;
@@ -311,6 +313,34 @@ public static class DbSeeder
         db.ContentCategories.AddRange(sohbet, menu);
         AddSohbetVeMenuItems(db, sohbet, menu);
         await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Daha önce seed edilmiş (yükseltilen) veritabanlarına yeni entegrasyon ayarı
+    /// anahtarlarını idempotent ekler. Yalnızca eksik anahtarlar eklenir; mevcut
+    /// değerler korunur (üzerine yazılmaz).
+    /// </summary>
+    private static async Task EnsureSettingsAsync(AppDbContext db)
+    {
+        var defaults = new (string Key, string Value)[]
+        {
+            ("hijri_day_offset", "0"),
+            ("prayer_default_method", "13"),
+            ("prayer_default_school", "0"),
+            ("prayer_default_tune", "0,0,0,0,0,0"),
+        };
+
+        var existing = await db.Settings.Select(s => s.Key).ToListAsync();
+        var existingSet = new HashSet<string>(existing);
+
+        var added = false;
+        foreach (var (key, value) in defaults)
+        {
+            if (existingSet.Contains(key)) continue;
+            db.Settings.Add(new AppSetting { Key = key, Value = value });
+            added = true;
+        }
+        if (added) await db.SaveChangesAsync();
     }
 
     /// <summary>Günün Sohbeti yazıları + Günün Menüsü (virgülle ayrılmış yemekler).</summary>

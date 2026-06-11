@@ -99,8 +99,7 @@ public class AladhanHijriDateProvider(
     {
         string url = $"{BaseUrl}/{date:dd-MM-yyyy}";
 
-        var http = httpClientFactory.CreateClient();
-        http.Timeout = TimeSpan.FromSeconds(5);
+        var http = httpClientFactory.CreateClient("aladhan");
 
         using var resp = await http.GetAsync(url, ct);
         int status = (int)resp.StatusCode;
@@ -109,13 +108,41 @@ public class AladhanHijriDateProvider(
         await using var stream = await resp.Content.ReadAsStreamAsync(ct);
         using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
 
-        var hijri = doc.RootElement.GetProperty("data").GetProperty("hijri");
+        var root = doc.RootElement;
 
-        int day = int.Parse(hijri.GetProperty("day").GetString()!, System.Globalization.CultureInfo.InvariantCulture);
-        int monthNumber = hijri.GetProperty("month").GetProperty("number").GetInt32();
-        int year = int.Parse(hijri.GetProperty("year").GetString()!, System.Globalization.CultureInfo.InvariantCulture);
+        // Aladhan zarfı: { code, status, data: { hijri: {...} } }
+        if (!root.TryGetProperty("code", out var codeEl) ||
+            !codeEl.TryGetInt32(out int code) || code != 200)
+            throw new InvalidOperationException($"Aladhan code != 200 (gelen: {(codeEl.ValueKind == JsonValueKind.Number ? codeEl.ToString() : "yok")}).");
+
+        if (!root.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Object ||
+            !data.TryGetProperty("hijri", out var hijri) || hijri.ValueKind != JsonValueKind.Object)
+            throw new InvalidOperationException("Aladhan data.hijri alanı eksik.");
+
+        int day = ParseIntField(hijri, "day");
+        int year = ParseIntField(hijri, "year");
+
+        if (!hijri.TryGetProperty("month", out var monthEl) || monthEl.ValueKind != JsonValueKind.Object ||
+            !monthEl.TryGetProperty("number", out var numberEl) || !numberEl.TryGetInt32(out int monthNumber) ||
+            monthNumber is < 1 or > 12)
+            throw new InvalidOperationException("Aladhan data.hijri.month.number eksik/geçersiz.");
 
         // Ay adını yerel Türkçe adlandırmayla eşle (Aladhan İngilizce/Arapça döndürür).
         return (new HijriDate(day, TurkishCalendarService.HijriMonthName(monthNumber), year), status);
+    }
+
+    /// <summary>
+    /// Aladhan hicrî sayısal alanlarını (string olarak döner) güvenle okur; alan eksik/boş/
+    /// biçimsizse net bir hata fırlatır (dıştaki try/catch yerel hesaba düşer).
+    /// </summary>
+    private static int ParseIntField(JsonElement obj, string field)
+    {
+        if (!obj.TryGetProperty(field, out var el) || el.ValueKind != JsonValueKind.String)
+            throw new InvalidOperationException($"Aladhan data.hijri.{field} eksik.");
+        var raw = el.GetString();
+        if (!int.TryParse(raw, System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture, out int value))
+            throw new InvalidOperationException($"Aladhan data.hijri.{field} geçersiz sayı: '{raw}'.");
+        return value;
     }
 }

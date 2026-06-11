@@ -120,8 +120,11 @@ public static class PrayerTimesCompute
 
     private static double ParseHhmm(string hhmm)
     {
-        var parts = hhmm.Split(':');
-        return int.Parse(parts[0]) * 60 + int.Parse(parts[1]);
+        if (!TimeOnly.TryParseExact(hhmm?.Trim(), "HH:mm",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out var t))
+            throw new FormatException($"Beklenmeyen saat biçimi: '{hhmm}'.");
+        return t.Hour * 60 + t.Minute;
     }
 
     private static (double Sunrise, double Sunset) SunriseSunset(DateOnly date, City city)

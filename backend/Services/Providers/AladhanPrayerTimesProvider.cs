@@ -92,8 +92,7 @@ public class AladhanPrayerTimesProvider(
                      $"&method={options.Method}&school={options.School}" +
                      $"&timezonestring=Europe/Istanbul&tune={aladhanTune}";
 
-        var http = httpClientFactory.CreateClient();
-        http.Timeout = TimeSpan.FromSeconds(5);
+        var http = httpClientFactory.CreateClient("aladhan");
 
         using var resp = await http.GetAsync(url, ct);
         int status = (int)resp.StatusCode;
@@ -101,27 +100,52 @@ public class AladhanPrayerTimesProvider(
 
         await using var stream = await resp.Content.ReadAsStreamAsync(ct);
         using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
-        var timings = doc.RootElement.GetProperty("data").GetProperty("timings");
+        var root = doc.RootElement;
+
+        // Aladhan zarfı: { code, status, data: { timings: {...} } }
+        if (!root.TryGetProperty("code", out var codeEl) ||
+            !codeEl.TryGetInt32(out int code) || code != 200)
+            throw new InvalidOperationException($"Aladhan code != 200 (gelen: {(codeEl.ValueKind == JsonValueKind.Number ? codeEl.ToString() : "yok")}).");
+
+        if (!root.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Object)
+            throw new InvalidOperationException("Aladhan data alanı eksik.");
+        if (!data.TryGetProperty("timings", out var timings) || timings.ValueKind != JsonValueKind.Object)
+            throw new InvalidOperationException("Aladhan data.timings alanı eksik.");
 
         // Aladhan → DTO: imsak=Fajr, gunes=Sunrise, ogle=Dhuhr,
         //                ikindi=Asr, aksam=Maghrib, yatsi=Isha
         var dto = new PrayerTimesDto(
-            Clean(timings.GetProperty("Fajr").GetString()),
-            Clean(timings.GetProperty("Sunrise").GetString()),
-            Clean(timings.GetProperty("Dhuhr").GetString()),
-            Clean(timings.GetProperty("Asr").GetString()),
-            Clean(timings.GetProperty("Maghrib").GetString()),
-            Clean(timings.GetProperty("Isha").GetString()));
+            Clean(timings, "Fajr"),
+            Clean(timings, "Sunrise"),
+            Clean(timings, "Dhuhr"),
+            Clean(timings, "Asr"),
+            Clean(timings, "Maghrib"),
+            Clean(timings, "Isha"));
         return (dto, status);
     }
 
-    /// <summary>"05:12 (+03)" → "05:12". İlk beş karakteri (HH:MM) alır.</summary>
-    private static string Clean(string? raw)
+    /// <summary>
+    /// timings içinden bir vakti (örn. "05:12 (+03)") okur, "HH:MM" kısmını döndürür.
+    /// Alan eksik/boş/biçimsizse net bir hata fırlatır (IntegrationCallLog'a anlamlı mesaj düşer
+    /// ve dıştaki try/catch yerel hesaba geçer).
+    /// </summary>
+    private static string Clean(JsonElement timings, string field)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(raw);
+        if (!timings.TryGetProperty(field, out var el) || el.ValueKind != JsonValueKind.String)
+            throw new InvalidOperationException($"Aladhan timings.{field} eksik.");
+
+        string? raw = el.GetString();
+        if (string.IsNullOrWhiteSpace(raw))
+            throw new InvalidOperationException($"Aladhan timings.{field} boş.");
+
         string trimmed = raw.Trim();
         int space = trimmed.IndexOf(' ');
         if (space >= 0) trimmed = trimmed[..space];
+
+        if (!TimeOnly.TryParseExact(trimmed, "HH:mm", System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out _))
+            throw new InvalidOperationException($"Aladhan timings.{field} geçersiz saat biçimi: '{trimmed}'.");
+
         return trimmed;
     }
 

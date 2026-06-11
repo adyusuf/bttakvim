@@ -7,7 +7,7 @@ import type { Leaf, PrayerTimes } from '../lib/types';
 import { LeafBack, LeafFront } from './Leaf';
 
 export function LeafAside() {
-  const { cities, citySlug, setCity } = useStore();
+  const { cities, citySlug, setCity, prayerPrefs } = useStore();
   const [leaf, setLeaf] = useState<Leaf | null>(null);
   const [prayer, setPrayer] = useState<PrayerTimes | null>(null);
   const iso = todayIso();
@@ -17,8 +17,8 @@ export function LeafAside() {
   }, [iso]);
 
   useEffect(() => {
-    fetchPrayerTimes(iso, citySlug).then(setPrayer).catch(() => setPrayer(null));
-  }, [iso, citySlug]);
+    fetchPrayerTimes(iso, citySlug, prayerPrefs).then(setPrayer).catch(() => setPrayer(null));
+  }, [iso, citySlug, prayerPrefs]);
 
   if (!leaf) return <aside className="web-aside" />;
 

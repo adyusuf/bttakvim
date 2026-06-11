@@ -148,7 +148,6 @@
   { "name": "Alparslan", "gender": "E", "meaning": "Aslan gibi yiğit kahraman" },
   { "name": "Arda", "gender": "E", "meaning": "Sınır işareti; ardıl, halef" },
   { "name": "Aras", "gender": "E", "meaning": "Doğu Anadolu'dan doğan nehir" },
-  { "name": "Arda", "gender": "E", "meaning": "Sınır işareti, nişan; soyun devamı" },
   { "name": "Atlas", "gender": "E", "meaning": "Göğü omuzlarında taşıyan titan; parlak ipekli kumaş" },
   { "name": "Acun", "gender": "E", "meaning": "Dünya, evren, kâinat" },
   { "name": "Bora", "gender": "E", "meaning": "Şiddetli ve geçici fırtına" },
@@ -240,6 +239,5 @@
   { "name": "Yunus", "gender": "E", "meaning": "Bir deniz canlısı; bir peygamber adı" },
   { "name": "Ozanalp", "gender": "E", "meaning": "Yiğit şair, kahraman ozan" },
   { "name": "Tunahan", "gender": "E", "meaning": "Tuna gibi gür akan hükümdar" },
-  { "name": "Aytaç", "gender": "E", "meaning": "Ay biçiminde taç; değerli, parlak" },
-  { "name": "Berkay", "gender": "E", "meaning": "Sağlam ve güçlü ay" }
+  { "name": "Aytaç", "gender": "E", "meaning": "Ay biçiminde taç; değerli, parlak" }
 ]
