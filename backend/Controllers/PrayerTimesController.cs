@@ -13,11 +13,15 @@ public class PrayerTimesController(IPrayerTimesProvider provider) : ControllerBa
     /// Konuma bağlı olduğu için yaprağa gömülmez, her istekte hesaplanır.
     /// </summary>
     [HttpGet]
-    public IActionResult Get(
+    public async Task<IActionResult> Get(
         [FromQuery] string? date,
         [FromQuery] string? city,
         [FromQuery] double? lat,
-        [FromQuery] double? lng)
+        [FromQuery] double? lng,
+        [FromQuery] int? method,
+        [FromQuery] int? school,
+        [FromQuery] string? tune,
+        CancellationToken ct)
     {
         DateOnly d;
         if (string.IsNullOrEmpty(date))
@@ -38,7 +42,53 @@ public class PrayerTimesController(IPrayerTimesProvider provider) : ControllerBa
         }
         selected ??= CityCatalog.Default;
 
-        return Ok(provider.GetTimes(d, selected));
+        if (!TryParseOptions(method, school, tune, out var options, out var error))
+            return BadRequest(new { error });
+
+        return Ok(await provider.GetTimesAsync(d, selected, options, ct));
+    }
+
+    /// <summary>
+    /// Hesap tercihlerini doğrular. method (varsayılan 13), school (0|1, varsayılan 0),
+    /// tune ("imsak,gunes,ogle,ikindi,aksam,yatsi" — 6 tam sayı dakika, varsayılan sıfır).
+    /// </summary>
+    private static bool TryParseOptions(
+        int? method, int? school, string? tune,
+        out PrayerCalcOptions options, out string error)
+    {
+        options = new PrayerCalcOptions();
+        error = "";
+
+        int m = method ?? 13;
+
+        int s = school ?? 0;
+        if (s is not (0 or 1))
+        {
+            error = "school yalnızca 0 (Şâfiî/standart) veya 1 (Hanefî) olabilir.";
+            return false;
+        }
+
+        int[] offsets = new int[6];
+        if (!string.IsNullOrWhiteSpace(tune))
+        {
+            var parts = tune.Split(',');
+            if (parts.Length != 6)
+            {
+                error = "tune tam olarak 6 değer içermeli: imsak,gunes,ogle,ikindi,aksam,yatsi.";
+                return false;
+            }
+            for (int i = 0; i < 6; i++)
+            {
+                if (!int.TryParse(parts[i].Trim(), out offsets[i]))
+                {
+                    error = "tune değerleri tam sayı dakika olmalı.";
+                    return false;
+                }
+            }
+        }
+
+        options = new PrayerCalcOptions(m, s, offsets);
+        return true;
     }
 
     [HttpGet("cities")]

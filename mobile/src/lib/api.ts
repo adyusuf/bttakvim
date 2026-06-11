@@ -79,12 +79,19 @@ export async function fetchLeaf(dateIso: string): Promise<LeafResult> {
 export async function fetchPrayerTimes(
   dateIso: string,
   location: { citySlug?: string; lat?: number; lng?: number },
+  prefs?: PrayerPrefs,
 ): Promise<PrayerTimes> {
   const params = new URLSearchParams({ date: dateIso });
   if (location.citySlug) params.set('city', location.citySlug);
   else if (location.lat != null && location.lng != null) {
     params.set('lat', String(location.lat));
     params.set('lng', String(location.lng));
+  }
+  if (prefs) {
+    params.set('method', String(prefs.method));
+    params.set('school', String(prefs.school));
+    const t = prefs.tune;
+    params.set('tune', [t.imsak, t.gunes, t.ogle, t.ikindi, t.aksam, t.yatsi].join(','));
   }
   try {
     return await get<PrayerTimes>(`/api/prayer-times?${params.toString()}`);
@@ -189,4 +196,63 @@ export async function getSavedCity(): Promise<string | null> {
 
 export async function saveCity(slug: string): Promise<void> {
   await AsyncStorage.setItem(CITY_STORAGE, slug);
+}
+
+// ---- Namaz vakti hesaplama tercihleri ----
+//
+// Paylaşılan sözleşme (backend + web aynısını uygular):
+//   method=<int>&school=<0|1>&tune=<imsak,gunes,ogle,ikindi,aksam,yatsi>
+// Varsayılan: method 13 (Diyanet), school 0 (standart Asr), tüm tune 0 —
+// yani değişiklik yapmayan kullanıcı için bugünkü davranış birebir korunur.
+
+export interface PrayerTune {
+  imsak: number;
+  gunes: number;
+  ogle: number;
+  ikindi: number;
+  aksam: number;
+  yatsi: number;
+}
+
+export interface PrayerPrefs {
+  method: number; // varsayılan 13 (Diyanet)
+  school: 0 | 1; // 0 = Şâfiî/standart, 1 = Hanefî (Asr)
+  tune: PrayerTune; // her vakit için dakika ince ayarı (temkin), -30..+30
+}
+
+const PRAYER_PREFS_STORAGE = 'bttakvim:prayer-prefs';
+
+export const DEFAULT_PRAYER_TUNE: PrayerTune = {
+  imsak: 0,
+  gunes: 0,
+  ogle: 0,
+  ikindi: 0,
+  aksam: 0,
+  yatsi: 0,
+};
+
+export const DEFAULT_PRAYER_PREFS: PrayerPrefs = {
+  method: 13,
+  school: 0,
+  tune: { ...DEFAULT_PRAYER_TUNE },
+};
+
+export async function getPrayerPrefs(): Promise<PrayerPrefs> {
+  try {
+    const raw = await AsyncStorage.getItem(PRAYER_PREFS_STORAGE);
+    if (!raw) return { ...DEFAULT_PRAYER_PREFS, tune: { ...DEFAULT_PRAYER_TUNE } };
+    const parsed = JSON.parse(raw) as Partial<PrayerPrefs>;
+    return {
+      method: typeof parsed.method === 'number' ? parsed.method : DEFAULT_PRAYER_PREFS.method,
+      school: parsed.school === 1 ? 1 : 0,
+      // tune derin birleştirme: eksik alanlar varsayılan 0 ile tamamlanır.
+      tune: { ...DEFAULT_PRAYER_TUNE, ...(parsed.tune ?? {}) },
+    };
+  } catch {
+    return { ...DEFAULT_PRAYER_PREFS, tune: { ...DEFAULT_PRAYER_TUNE } };
+  }
+}
+
+export async function savePrayerPrefs(p: PrayerPrefs): Promise<void> {
+  await AsyncStorage.setItem(PRAYER_PREFS_STORAGE, JSON.stringify(p));
 }

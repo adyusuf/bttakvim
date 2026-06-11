@@ -20,7 +20,9 @@ builder.Services.AddControllers().AddJsonOptions(o =>
 // Takvim hesapları ve sağlayıcılar (mock-first; Faz 5'te gerçek servislerle değiştirilecek)
 builder.Services.AddSingleton<TurkishCalendarService>();
 builder.Services.AddSingleton<IMoonPhaseProvider, MockMoonPhaseProvider>();
-builder.Services.AddSingleton<IPrayerTimesProvider, MockDiyanetPrayerTimesProvider>();
+builder.Services.AddHttpClient();
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<IPrayerTimesProvider, AladhanPrayerTimesProvider>();
 builder.Services.AddScoped<IQuoteProvider, DbQuoteProvider>();
 builder.Services.AddScoped<INameProvider, DbNameProvider>();
 builder.Services.AddScoped<LeafService>();

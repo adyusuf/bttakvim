@@ -1,13 +1,35 @@
 import {
-  CloudSun, Compass, MapPin, Moon, MoonStars, Mosque, Sun, SunHorizon,
+  ArrowCounterClockwise, CaretDown, CloudSun, Compass, MapPin, Minus, Moon, MoonStars,
+  Mosque, Plus, SlidersHorizontal, Sun, SunHorizon,
   type Icon as PhosphorIcon,
 } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import { Rosette } from '../components/leaf-bits';
 import { fetchLeaf, fetchPrayerTimes } from '../lib/api';
 import { formatLongDate, todayIso } from '../lib/dates';
-import { useStore } from '../lib/store-context';
+import { DEFAULT_PRAYER_PREFS, useStore } from '../lib/store-context';
+import type { PrayerTune } from '../lib/store';
 import type { Leaf, PrayerTimes } from '../lib/types';
+
+const HESAP_METODLARI: { id: number; ad: string }[] = [
+  { id: 13, ad: 'Diyanet İşleri Başkanlığı (Türkiye)' },
+  { id: 3, ad: 'İslam Dünyası Birliği (MWL)' },
+  { id: 2, ad: 'ISNA (Kuzey Amerika)' },
+  { id: 4, ad: "Ümmü'l-Kura (Mekke)" },
+  { id: 5, ad: 'Mısır Genel Otoritesi' },
+  { id: 1, ad: 'Karaçi Üniversitesi' },
+];
+
+const TEMKIN: { key: keyof PrayerTune; ad: string }[] = [
+  { key: 'imsak', ad: 'İmsak' },
+  { key: 'gunes', ad: 'Güneş' },
+  { key: 'ogle', ad: 'Öğle' },
+  { key: 'ikindi', ad: 'İkindi' },
+  { key: 'aksam', ad: 'Akşam' },
+  { key: 'yatsi', ad: 'Yatsı' },
+];
+
+const clampTune = (n: number) => Math.max(-30, Math.min(30, n));
 
 const VAKIT: { key: keyof PrayerTimes['times']; ad: string; Ikon: PhosphorIcon }[] = [
   { key: 'imsak', ad: 'İmsak', Ikon: MoonStars },
@@ -39,19 +61,25 @@ function remaining(time: string) {
 }
 
 export function Vakitler() {
-  const { cities, citySlug, setCity, cityName } = useStore();
+  const { cities, citySlug, setCity, cityName, prayerPrefs, setPrayerPrefs } = useStore();
   const [prayer, setPrayer] = useState<PrayerTimes | null>(null);
   const [leaf, setLeaf] = useState<Leaf | null>(null);
   const [table, setTable] = useState<PrayerTimes[]>([]);
+  const [hesapAcik, setHesapAcik] = useState(false);
   const iso = todayIso();
 
   useEffect(() => { fetchLeaf(iso).then(setLeaf).catch(() => setLeaf(null)); }, [iso]);
-  useEffect(() => { fetchPrayerTimes(iso, citySlug).then(setPrayer).catch(() => setPrayer(null)); }, [iso, citySlug]);
+  useEffect(() => { fetchPrayerTimes(iso, citySlug, prayerPrefs).then(setPrayer).catch(() => setPrayer(null)); }, [iso, citySlug, prayerPrefs]);
   useEffect(() => {
     if (!cities.length) return;
-    Promise.all(cities.map((c) => fetchPrayerTimes(iso, c.slug).catch(() => null)))
+    Promise.all(cities.map((c) => fetchPrayerTimes(iso, c.slug, prayerPrefs).catch(() => null)))
       .then((r) => setTable(r.filter(Boolean) as PrayerTimes[]));
-  }, [cities, iso]);
+  }, [cities, iso, prayerPrefs]);
+
+  const varsayilanMi =
+    prayerPrefs.method === DEFAULT_PRAYER_PREFS.method &&
+    prayerPrefs.school === DEFAULT_PRAYER_PREFS.school &&
+    TEMKIN.every((t) => prayerPrefs.tune[t.key] === 0);
 
   const siradaki = prayer ? nextVakit(prayer) : null;
   const siradakiTanim = VAKIT.find((v) => v.key === siradaki);
@@ -76,6 +104,80 @@ export function Vakitler() {
             {c.name}
           </button>
         ))}
+      </div>
+
+      <div className="web-hesap">
+        <button className="web-hesap-toggle" onClick={() => setHesapAcik((o) => !o)} aria-expanded={hesapAcik}>
+          <span><SlidersHorizontal size={15} weight="fill" color="var(--prayer)" /> Hesaplama Ayarları</span>
+          <CaretDown size={14} weight="bold" style={{ transform: hesapAcik ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
+        </button>
+        {hesapAcik ? (
+          <div className="web-hesap-body">
+            <label className="web-hesap-field">
+              <span className="web-hesap-lbl">Hesaplama Yöntemi</span>
+              <select
+                className="web-hesap-select"
+                value={prayerPrefs.method}
+                onChange={(e) => setPrayerPrefs({ method: Number(e.target.value) })}
+              >
+                {HESAP_METODLARI.map((m) => <option key={m.id} value={m.id}>{m.ad}</option>)}
+              </select>
+            </label>
+
+            <div className="web-hesap-field">
+              <span className="web-hesap-lbl">İkindi (Asr) Mezhebi</span>
+              <div className="web-hesap-seg" role="group" aria-label="Asr mezhebi">
+                <button
+                  className={'web-hesap-seg-btn' + (prayerPrefs.school === 0 ? ' on' : '')}
+                  aria-pressed={prayerPrefs.school === 0}
+                  onClick={() => setPrayerPrefs({ school: 0 })}
+                >Şâfiî / Mâlikî / Hanbelî (standart)</button>
+                <button
+                  className={'web-hesap-seg-btn' + (prayerPrefs.school === 1 ? ' on' : '')}
+                  aria-pressed={prayerPrefs.school === 1}
+                  onClick={() => setPrayerPrefs({ school: 1 })}
+                >Hanefî</button>
+              </div>
+            </div>
+
+            <div className="web-hesap-field">
+              <span className="web-hesap-lbl">İnce ayar (temkin) · dakika</span>
+              <div className="web-hesap-tune">
+                {TEMKIN.map((t) => {
+                  const val = prayerPrefs.tune[t.key];
+                  return (
+                    <div key={t.key} className="web-hesap-step">
+                      <span className="web-hesap-step-ad">{t.ad}</span>
+                      <div className="web-hesap-step-ctrl">
+                        <button
+                          className="web-hesap-step-btn"
+                          aria-label={`${t.ad} azalt`}
+                          disabled={val <= -30}
+                          onClick={() => setPrayerPrefs({ tune: { [t.key]: clampTune(val - 1) } })}
+                        ><Minus size={13} weight="bold" /></button>
+                        <span className="web-hesap-step-val">{val > 0 ? `+${val}` : val}</span>
+                        <button
+                          className="web-hesap-step-btn"
+                          aria-label={`${t.ad} artır`}
+                          disabled={val >= 30}
+                          onClick={() => setPrayerPrefs({ tune: { [t.key]: clampTune(val + 1) } })}
+                        ><Plus size={13} weight="bold" /></button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="web-hesap-foot">
+              <button
+                className="web-hesap-reset"
+                disabled={varsayilanMi}
+                onClick={() => setPrayerPrefs({ ...DEFAULT_PRAYER_PREFS, tune: { ...DEFAULT_PRAYER_PREFS.tune } })}
+              ><ArrowCounterClockwise size={13} weight="bold" /> Sıfırla</button>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {prayer ? (
