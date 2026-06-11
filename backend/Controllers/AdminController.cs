@@ -10,7 +10,7 @@ namespace BTTakvim.Api.Controllers;
 [ApiController]
 [Route("api/admin")]
 [Authorize(Roles = "admin")]
-public class AdminController(AppDbContext db, LeafService leafService) : ControllerBase
+public class AdminController(AppDbContext db, LeafService leafService, IntegrationCallLog integrationLog) : ControllerBase
 {
     // ---- Özet (dashboard) ----
 
@@ -24,6 +24,19 @@ public class AdminController(AppDbContext db, LeafService leafService) : Control
         blogPosts = await db.BlogPosts.CountAsync(ct),
         comments = await db.Comments.CountAsync(ct),
         reports = await db.Reactions.CountAsync(r => r.Kind == ReactionKind.Report, ct),
+    });
+
+    // ---- Entegrasyon izleme (gelen/giden dış API trafiği) ----
+
+    /// <summary>
+    /// Dış API'lere (Aladhan namaz vakitleri + gToH hicrî) yapılan son çağrıların
+    /// bellek içi kaydı. Yalnızca son ~200 çağrı tutulur; sunucu yeniden başlayınca sıfırlanır.
+    /// </summary>
+    [HttpGet("integration-log")]
+    public IActionResult IntegrationLog([FromQuery] int? n) => Ok(new
+    {
+        summary = integrationLog.Summary(),
+        entries = integrationLog.Recent(n ?? 200),
     });
 
     // ---- Yapraklar ----

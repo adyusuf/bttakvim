@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Text.Json;
+using BTTakvim.Api.Services;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace BTTakvim.Api.Services.Providers;
@@ -12,34 +14,62 @@ namespace BTTakvim.Api.Services.Providers;
 public class AladhanPrayerTimesProvider(
     IHttpClientFactory httpClientFactory,
     IMemoryCache cache,
+    IntegrationCallLog callLog,
     ILogger<AladhanPrayerTimesProvider> logger) : IPrayerTimesProvider
 {
     private const string BaseUrl = "https://api.aladhan.com/v1/timings";
+    private const string ServiceName = "aladhan-timings";
     private static readonly TimeZoneInfo IstanbulTz = ResolveIstanbulTz();
 
     public async Task<PrayerTimesResult> GetTimesAsync(
         DateOnly date, City city, PrayerCalcOptions options, CancellationToken ct = default)
     {
         int[] tune = options.TuneOrDefault;
+        string requestSummary = $"city={city.Slug} date={date:dd-MM-yyyy} method={options.Method} school={options.School}";
         string cacheKey = $"aladhan:{date:yyyy-MM-dd}:{city.Slug}:{options.Method}:{options.School}:{string.Join(',', tune)}";
         if (cache.TryGetValue(cacheKey, out PrayerTimesResult? cached) && cached is not null)
+        {
+            callLog.Add(new IntegrationCallEntry(
+                DateTime.UtcNow, ServiceName, requestSummary, "cache", "aladhan",
+                CacheHit: true, DurationMs: 0, StatusCode: null,
+                ResponseSummary: TimesSummary(cached), Error: null));
             return cached;
+        }
 
+        var sw = Stopwatch.StartNew();
+        int? statusCode = null;
         try
         {
-            var times = await FetchAsync(date, city, options, tune, ct);
+            var (times, status) = await FetchAsync(date, city, options, tune, ct);
+            statusCode = status;
             var result = PrayerTimesCompute.FromTimings(date, city, times, $"aladhan-{options.Method}");
             cache.Set(cacheKey, result, EndOfIstanbulDay());
+            sw.Stop();
+            callLog.Add(new IntegrationCallEntry(
+                DateTime.UtcNow, ServiceName, requestSummary, "success", "aladhan",
+                CacheHit: false, DurationMs: sw.ElapsedMilliseconds, StatusCode: statusCode,
+                ResponseSummary: TimesSummary(result), Error: null));
             return result;
         }
         catch (Exception ex)
         {
+            sw.Stop();
+            if (statusCode is null && ex is HttpRequestException { StatusCode: { } hs })
+                statusCode = (int)hs;
             logger.LogWarning(ex, "Aladhan isteği başarısız ({City} {Date}); yerel hesaba düşülüyor.", city.Slug, date);
-            return PrayerTimesCompute.Local(date, city, options);
+            var local = PrayerTimesCompute.Local(date, city, options);
+            callLog.Add(new IntegrationCallEntry(
+                DateTime.UtcNow, ServiceName, requestSummary, "fallback", "local",
+                CacheHit: false, DurationMs: sw.ElapsedMilliseconds, StatusCode: statusCode,
+                ResponseSummary: TimesSummary(local), Error: ex.Message));
+            return local;
         }
     }
 
-    private async Task<PrayerTimesDto> FetchAsync(
+    private static string TimesSummary(PrayerTimesResult r) =>
+        $"{r.Times.Imsak} {r.Times.Gunes} {r.Times.Ogle} {r.Times.Ikindi} {r.Times.Aksam} {r.Times.Yatsi}";
+
+    private async Task<(PrayerTimesDto Times, int Status)> FetchAsync(
         DateOnly date, City city, PrayerCalcOptions options, int[] tune, CancellationToken ct)
     {
         // OUR tune: imsak,gunes,ogle,ikindi,aksam,yatsi
@@ -66,6 +96,7 @@ public class AladhanPrayerTimesProvider(
         http.Timeout = TimeSpan.FromSeconds(5);
 
         using var resp = await http.GetAsync(url, ct);
+        int status = (int)resp.StatusCode;
         resp.EnsureSuccessStatusCode();
 
         await using var stream = await resp.Content.ReadAsStreamAsync(ct);
@@ -74,13 +105,14 @@ public class AladhanPrayerTimesProvider(
 
         // Aladhan → DTO: imsak=Fajr, gunes=Sunrise, ogle=Dhuhr,
         //                ikindi=Asr, aksam=Maghrib, yatsi=Isha
-        return new PrayerTimesDto(
+        var dto = new PrayerTimesDto(
             Clean(timings.GetProperty("Fajr").GetString()),
             Clean(timings.GetProperty("Sunrise").GetString()),
             Clean(timings.GetProperty("Dhuhr").GetString()),
             Clean(timings.GetProperty("Asr").GetString()),
             Clean(timings.GetProperty("Maghrib").GetString()),
             Clean(timings.GetProperty("Isha").GetString()));
+        return (dto, status);
     }
 
     /// <summary>"05:12 (+03)" → "05:12". İlk beş karakteri (HH:MM) alır.</summary>

@@ -22,6 +22,7 @@ builder.Services.AddSingleton<TurkishCalendarService>();
 builder.Services.AddSingleton<IMoonPhaseProvider, AstronomicalMoonPhaseProvider>();
 builder.Services.AddHttpClient();
 builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<IntegrationCallLog>();
 builder.Services.AddSingleton<IPrayerTimesProvider, AladhanPrayerTimesProvider>();
 builder.Services.AddSingleton<IHijriDateProvider, AladhanHijriDateProvider>();
 builder.Services.AddScoped<IQuoteProvider, DbQuoteProvider>();

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using BTTakvim.Api.Services;
 using Microsoft.Extensions.Caching.Memory;
@@ -30,21 +31,33 @@ public class AladhanHijriDateProvider(
     IHttpClientFactory httpClientFactory,
     IMemoryCache cache,
     TurkishCalendarService calendar,
+    IntegrationCallLog callLog,
     ILogger<AladhanHijriDateProvider> logger) : IHijriDateProvider
 {
     private const string BaseUrl = "https://api.aladhan.com/v1/gToH";
+    private const string ServiceName = "aladhan-gtoh";
 
     public async Task<HijriDate> GetHijriAsync(DateOnly date, CancellationToken ct = default)
     {
         var local = calendar.GetHijri(date);
+        string requestSummary = $"date={date:dd-MM-yyyy}";
 
         string cacheKey = $"hijri:gToH:{date:yyyy-MM-dd}";
         if (cache.TryGetValue(cacheKey, out HijriDate? cached) && cached is not null)
+        {
+            callLog.Add(new IntegrationCallEntry(
+                DateTime.UtcNow, ServiceName, requestSummary, "cache", "aladhan",
+                CacheHit: true, DurationMs: 0, StatusCode: null,
+                ResponseSummary: HijriSummary(cached), Error: null));
             return cached;
+        }
 
+        var sw = Stopwatch.StartNew();
+        int? statusCode = null;
         try
         {
-            var remote = await FetchAsync(date, ct);
+            var (remote, status) = await FetchAsync(date, ct);
+            statusCode = status;
 
             // Yerel hesapla farkı görünür kıl (kalibrasyon/sürüklenme izleme).
             if (remote.Day != local.Day || remote.MonthName != local.MonthName || remote.Year != local.Year)
@@ -59,16 +72,30 @@ public class AladhanHijriDateProvider(
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(30),
             });
+            sw.Stop();
+            callLog.Add(new IntegrationCallEntry(
+                DateTime.UtcNow, ServiceName, requestSummary, "success", "aladhan",
+                CacheHit: false, DurationMs: sw.ElapsedMilliseconds, StatusCode: statusCode,
+                ResponseSummary: HijriSummary(remote), Error: null));
             return remote;
         }
         catch (Exception ex)
         {
+            sw.Stop();
+            if (statusCode is null && ex is HttpRequestException { StatusCode: { } hs })
+                statusCode = (int)hs;
             logger.LogWarning(ex, "Aladhan gToH isteği başarısız ({Date}); yerel hicrî hesaba düşülüyor.", date);
+            callLog.Add(new IntegrationCallEntry(
+                DateTime.UtcNow, ServiceName, requestSummary, "fallback", "local",
+                CacheHit: false, DurationMs: sw.ElapsedMilliseconds, StatusCode: statusCode,
+                ResponseSummary: HijriSummary(local), Error: ex.Message));
             return local;
         }
     }
 
-    private async Task<HijriDate> FetchAsync(DateOnly date, CancellationToken ct)
+    private static string HijriSummary(HijriDate h) => $"{h.Day} {h.MonthName} {h.Year}";
+
+    private async Task<(HijriDate Hijri, int Status)> FetchAsync(DateOnly date, CancellationToken ct)
     {
         string url = $"{BaseUrl}/{date:dd-MM-yyyy}";
 
@@ -76,6 +103,7 @@ public class AladhanHijriDateProvider(
         http.Timeout = TimeSpan.FromSeconds(5);
 
         using var resp = await http.GetAsync(url, ct);
+        int status = (int)resp.StatusCode;
         resp.EnsureSuccessStatusCode();
 
         await using var stream = await resp.Content.ReadAsStreamAsync(ct);
@@ -88,6 +116,6 @@ public class AladhanHijriDateProvider(
         int year = int.Parse(hijri.GetProperty("year").GetString()!, System.Globalization.CultureInfo.InvariantCulture);
 
         // Ay adını yerel Türkçe adlandırmayla eşle (Aladhan İngilizce/Arapça döndürür).
-        return new HijriDate(day, TurkishCalendarService.HijriMonthName(monthNumber), year);
+        return (new HijriDate(day, TurkishCalendarService.HijriMonthName(monthNumber), year), status);
     }
 }
