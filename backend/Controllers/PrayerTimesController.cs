@@ -105,7 +105,7 @@ public class PrayerTimesController(IPrayerTimesProvider provider, AppDbContext d
         int[] offsets = defaults.TuneOrDefault;
         if (!string.IsNullOrWhiteSpace(tune))
         {
-            offsets = new int[6];
+            var parsed = new int[6];
             var parts = tune.Split(',');
             if (parts.Length != 6)
             {
@@ -114,12 +114,18 @@ public class PrayerTimesController(IPrayerTimesProvider provider, AppDbContext d
             }
             for (int i = 0; i < 6; i++)
             {
-                if (!int.TryParse(parts[i].Trim(), out offsets[i]))
+                if (!int.TryParse(parts[i].Trim(), out parsed[i]))
                 {
                     error = "tune değerleri tam sayı dakika olmalı.";
                     return false;
                 }
             }
+            // İstemci hepsi-sıfır tune gönderdiyse (örn. temkini özelleştirmemiş istemci) bunu
+            // "tercih yok" sayıp admin varsayılan temkinini koru; yalnız sıfırdan farklı bir
+            // değer varsa istemci tercihi admin varsayılanını geçersiz kılar.
+            bool anyNonZero = false;
+            foreach (var o in parsed) if (o != 0) { anyNonZero = true; break; }
+            offsets = anyNonZero ? parsed : defaults.TuneOrDefault;
         }
 
         options = new PrayerCalcOptions(m, s, offsets);
