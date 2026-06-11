@@ -524,7 +524,7 @@ export default function VakitlerScreen() {
             </View>
             {prayer.source.startsWith('mock') ? (
               <Text style={{ textAlign: 'center', fontFamily: fonts.sans, fontSize: 10.5, color: colors.ink3, marginTop: 6 }}>
-                Vakitler geçici olarak yerel hesapla üretiliyor; Diyanet servisi bağlanacak.
+                Vakitler şu an yerel astronomik hesapla üretiliyor (Aladhan servisine ulaşılamadı); bağlantı sağlanınca güncel değerler gösterilir.
               </Text>
             ) : null}
           </>
