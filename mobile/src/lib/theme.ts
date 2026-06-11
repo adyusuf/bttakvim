@@ -3,6 +3,8 @@
  * Kanonik palet: Osmanlı Çini (İznik). Diğer paletler "Daha → Tema"dan seçilir.
  */
 
+import { createContext, useContext } from 'react';
+
 export interface Palette {
   id: string;
   name: string;
@@ -154,8 +156,6 @@ export const fonts = {
 };
 
 export const radius = { xs: 4, sm: 8, md: 12, lg: 16, xl: 22, pill: 999 };
-
-import React, { createContext, useContext } from 'react';
 
 export interface ThemePrefs {
   paletteId: string;

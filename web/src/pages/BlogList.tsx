@@ -1,7 +1,8 @@
 import { Clock, SquaresFour } from '@phosphor-icons/react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Kapak, catColor } from '../components/Kapak';
+import { Kapak } from '../components/Kapak';
+import { catColor } from '../components/catColor';
 import { LeafAside } from '../components/LeafAside';
 import { Rosette } from '../components/leaf-bits';
 import { fetchBlogCategories, fetchBlogPosts } from '../lib/api';

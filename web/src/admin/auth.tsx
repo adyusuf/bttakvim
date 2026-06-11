@@ -1,14 +1,6 @@
-import { createContext, useContext, useState } from 'react';
+import { useState } from 'react';
 import { adminApi, clearToken, getToken, setToken } from './api';
-
-interface AuthState {
-  authed: boolean;
-  name: string;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-}
-
-const Ctx = createContext<AuthState>(null as unknown as AuthState);
+import { AdminAuthContext } from './auth-context';
 
 export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const [authed, setAuthed] = useState(() => !!getToken());
@@ -27,7 +19,5 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     setAuthed(false);
   };
 
-  return <Ctx.Provider value={{ authed, name, login, logout }}>{children}</Ctx.Provider>;
+  return <AdminAuthContext.Provider value={{ authed, name, login, logout }}>{children}</AdminAuthContext.Provider>;
 }
-
-export const useAdminAuth = () => useContext(Ctx);

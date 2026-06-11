@@ -1,7 +1,8 @@
 import { Plus, Trash } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import { adminApi } from '../api';
-import { Field, Modal, useAsyncAction } from '../ui';
+import { Field, Modal } from '../ui';
+import { useAsyncAction } from '../useAsyncAction';
 import { TURKISH_MONTHS } from '../../lib/dates';
 
 interface HEvent { id: number; month: number; day: number; year: number; text: string; isActive: boolean; }

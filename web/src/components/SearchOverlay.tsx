@@ -2,7 +2,7 @@ import { Article as ArticleIcon, MagnifyingGlass } from '@phosphor-icons/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchBlogPosts } from '../lib/api';
-import { catColor } from './Kapak';
+import { catColor } from './catColor';
 import type { BlogPostRef } from '../lib/types';
 
 export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -11,16 +11,26 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
   const [posts, setPosts] = useState<BlogPostRef[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Açılışta sorguyu sıfırla: efekt içinde senkron setState yerine,
+  // prop değişimine göre render sırasında ayarla (ekstra commit yok).
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setQ('');
+  }
+
   useEffect(() => {
-    if (open) {
-      setQ('');
-      fetchBlogPosts().then(setPosts).catch(() => setPosts([]));
-      setTimeout(() => inputRef.current?.focus(), 30);
-    }
+    if (!open) return;
+    fetchBlogPosts().then(setPosts).catch(() => setPosts([]));
+    const focusId = setTimeout(() => inputRef.current?.focus(), 30);
+    return () => clearTimeout(focusId);
+  }, [open]);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  }, [onClose]);
 
   const ql = q.trim().toLocaleLowerCase('tr');
   const res = useMemo(

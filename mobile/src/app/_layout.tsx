@@ -33,12 +33,6 @@ import {
 } from 'phosphor-react-native';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, LogBox, View } from 'react-native';
-
-// react-native-svg'nin web'deki dokunma uyarıları (yalnızca dev) — işlevi etkilemiyor.
-LogBox.ignoreLogs([
-  /Unknown event handler property/,
-  /TouchableMixin is deprecated/,
-]);
 import { AppStateProvider } from '@/lib/app-state';
 import {
   buildColors,
@@ -48,6 +42,12 @@ import {
   ThemeContext,
   ThemePrefs,
 } from '@/lib/theme';
+
+// react-native-svg'nin web'deki dokunma uyarıları (yalnızca dev) — işlevi etkilemiyor.
+LogBox.ignoreLogs([
+  /Unknown event handler property/,
+  /TouchableMixin is deprecated/,
+]);
 
 const PREFS_KEY = 'bttakvim:theme-prefs';
 

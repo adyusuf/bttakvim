@@ -7,6 +7,32 @@ import { fonts, useTheme } from '@/lib/theme';
 import { useDeviceKey } from '@/lib/use-device-key';
 import type { ReactionKind, ReactionStatus, TargetType } from '@/lib/types';
 
+function Btn({
+  icon, label, active, activeColor, borderColor, textActive, textInactive, onPress,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  active?: boolean;
+  activeColor?: string;
+  borderColor: string;
+  textActive: string;
+  textInactive: string;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={[
+        styles.btn,
+        { borderColor },
+        active ? { backgroundColor: activeColor, borderColor: activeColor } : null,
+      ]}>
+      {icon}
+      <Text style={[styles.btnText, { color: active ? textActive : textInactive }]}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
 export function ReactionBar({
   targetType,
   targetId,
@@ -46,42 +72,41 @@ export function ReactionBar({
 
   const share = () => Share.share({ message: shareMessage });
 
-  const Btn = ({
-    kind, icon, label, active, activeColor,
-  }: {
-    kind?: ReactionKind; icon: React.ReactNode; label: string; active?: boolean; activeColor?: string;
-  }) => (
-    <TouchableOpacity
-      onPress={kind ? () => toggle(kind) : share}
-      style={[
-        styles.btn,
-        { borderColor: colors.ruleStrong },
-        active ? { backgroundColor: activeColor, borderColor: activeColor } : null,
-      ]}>
-      {icon}
-      <Text style={[styles.btnText, { color: active ? colors.textOnDark : colors.ink2 }]}>{label}</Text>
-    </TouchableOpacity>
-  );
-
   return (
     <View style={styles.row}>
       <Btn
-        kind="Like"
+        onPress={() => toggle('Like')}
         active={s?.myLike}
         activeColor={colors.red0}
+        borderColor={colors.ruleStrong}
+        textActive={colors.textOnDark}
+        textInactive={colors.ink2}
         icon={<Heart size={15} weight={s?.myLike ? 'fill' : 'regular'} color={s?.myLike ? colors.textOnDark : colors.ink2} />}
         label={s ? `Beğen · ${s.likes}` : 'Beğen'}
       />
       <Btn
-        kind="Save"
+        onPress={() => toggle('Save')}
         active={s?.mySave}
         activeColor={colors.blue0}
+        borderColor={colors.ruleStrong}
+        textActive={colors.textOnDark}
+        textInactive={colors.ink2}
         icon={<BookmarkSimple size={15} weight={s?.mySave ? 'fill' : 'regular'} color={s?.mySave ? colors.textOnDark : colors.ink2} />}
         label={s?.mySave ? 'Kaydedildi' : 'Kaydet'}
       />
-      <Btn icon={<ShareNetwork size={15} color={colors.ink2} />} label="Paylaş" />
       <Btn
-        kind="Report"
+        onPress={share}
+        borderColor={colors.ruleStrong}
+        textActive={colors.textOnDark}
+        textInactive={colors.ink2}
+        icon={<ShareNetwork size={15} color={colors.ink2} />}
+        label="Paylaş"
+      />
+      <Btn
+        onPress={() => toggle('Report')}
+        borderColor={colors.ruleStrong}
+        textActive={colors.textOnDark}
+        textInactive={colors.ink2}
         icon={<WarningCircle size={15} color={colors.ink2} />}
         label={s && s.reports > 0 ? `Bildir · ${s.reports}` : 'Bildir'}
       />

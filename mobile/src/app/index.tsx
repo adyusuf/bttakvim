@@ -100,21 +100,28 @@ export default function TakvimScreen() {
   const { cities, location, selectCity, useGps } = useAppState();
 
   const [dateIso, setDateIso] = useState(todayIso());
-  const [leaf, setLeaf] = useState<Leaf | null>(null);
-  const [offline, setOffline] = useState(false);
-  const [leafLoading, setLeafLoading] = useState(true);
   const [flipped, setFlipped] = useState(false);
-  const [prayer, setPrayer] = useState<PrayerTimes | null>(null);
-  const [prayerLoading, setPrayerLoading] = useState(true);
+
+  // Yaprak verisi, hangi tarih için yüklendiği bilgisiyle birlikte tutulur;
+  // yükleniyor durumu bu anahtar ile istenen tarih karşılaştırılarak render'da türetilir.
+  const [leafState, setLeafState] = useState<{ key: string; leaf: Leaf; offline: boolean } | null>(null);
+  const leaf = leafState?.leaf ?? null;
+  const offline = leafState?.offline ?? false;
+  const leafLoading = leafState?.key !== dateIso;
+
+  // Vakit verisi, hangi tarih+konum için yüklendiği bilgisiyle birlikte tutulur.
+  const prayerKey = `${dateIso}|${
+    location.kind === 'city' ? location.slug : `${location.lat},${location.lng}`
+  }`;
+  const [prayerState, setPrayerState] = useState<{ key: string; prayer: PrayerTimes } | null>(null);
+  const prayer = prayerState?.prayer ?? null;
+  const prayerLoading = prayerState?.key !== prayerKey;
 
   useEffect(() => {
     let alive = true;
-    setLeafLoading(true);
     fetchLeaf(dateIso).then((r) => {
       if (!alive) return;
-      setLeaf(r.leaf);
-      setOffline(r.offline);
-      setLeafLoading(false);
+      setLeafState({ key: dateIso, leaf: r.leaf, offline: r.offline });
     });
     return () => {
       alive = false;
@@ -123,19 +130,17 @@ export default function TakvimScreen() {
 
   useEffect(() => {
     let alive = true;
-    setPrayerLoading(true);
     fetchPrayerTimes(
       dateIso,
       location.kind === 'city' ? { citySlug: location.slug } : { lat: location.lat, lng: location.lng },
     ).then((r) => {
       if (!alive) return;
-      setPrayer(r);
-      setPrayerLoading(false);
+      setPrayerState({ key: prayerKey, prayer: r });
     });
     return () => {
       alive = false;
     };
-  }, [dateIso, location]);
+  }, [dateIso, location, prayerKey]);
 
   const goDay = useCallback((delta: number) => {
     setDateIso((d) => addDays(d, delta));
