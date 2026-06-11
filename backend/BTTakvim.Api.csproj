@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Update="Data\Seed\quotes.json">
+    <Content Update="Data\Seed\*.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

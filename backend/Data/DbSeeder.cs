@@ -217,29 +217,11 @@ public static class DbSeeder
         SeedQuotes(db);
 
         // ---- İsimler ----
-        void N(string name, string gender, string meaning) =>
-            db.BabyNames.Add(new BabyName { Name = name, Gender = gender, Meaning = meaning });
-
-        N("İzel", "K", "Çok güzel, eşsiz");
-        N("Elif", "K", "Arap alfabesinin ilk harfi; ince, narin");
-        N("Defne", "K", "Yapraklarını dökmeyen güzel kokulu ağaç");
-        N("Zeynep", "K", "Değerli taşlar, mücevher");
-        N("Asel", "K", "Bal");
-        N("Duru", "K", "Saf, berrak");
-        N("Nehir", "K", "Akarsu, ırmak");
-        N("Miray", "K", "Ayın yansıması gibi parlak");
-        N("Azra", "K", "El değmemiş, kusursuz");
-        N("İpek", "K", "İpek böceğinin ürettiği değerli iplik gibi yumuşak");
-        N("Acun", "E", "Dünya, kâinat");
-        N("Yiğit", "E", "Cesur, kahraman");
-        N("Emir", "E", "Yöneten, buyruk veren");
-        N("Aras", "E", "Doğu Anadolu'dan doğan nehir");
-        N("Kerem", "E", "Cömertlik, soyluluk");
-        N("Demir", "E", "Güçlü, sağlam");
-        N("Çınar", "E", "Uzun ömürlü, ulu ağaç");
-        N("Atlas", "E", "Dünyayı omuzlarında taşıyan titan; ipekli kumaş");
-        N("Mert", "E", "Sözünün eri, yürekli");
-        N("Alp", "E", "Kahraman, yiğit savaşçı");
+        // Küratörlü bebek ismi + anlamı veri kümesi Data/Seed/baby-names.json
+        // dosyasından yüklenir. Tablo boşken (Ad, Cinsiyet) çiftine göre
+        // tekilleştirilerek eklenir; dosya okunamazsa küçük bir gömülü liste
+        // devreye girer (quotes.json deseninin aynısı).
+        SeedNames(db);
 
         // ---- Blog ----
         var blogCats = new Dictionary<string, BlogCategory>();
@@ -417,5 +399,72 @@ public static class DbSeeder
         new("Hayatta en hakiki mürşit ilimdir.", "Mustafa Kemal Atatürk"),
         new("Sevelim, sevilelim; bu dünya kimseye kalmaz.", "Yunus Emre"),
         new("Bilgi paylaşıldıkça çoğalan tek hazinedir.", null),
+    ];
+
+    private sealed record NameSeed(string Name, string Gender, string? Meaning);
+
+    /// <summary>
+    /// Bebek isimlerini Data/Seed/baby-names.json dosyasından idempotent yükler.
+    /// Yalnızca BabyNames tablosu boşken ekler; (Ad, Cinsiyet) çiftine göre
+    /// tekilleştirir. Cinsiyet yalnızca "K" veya "E" olabilir; geçersiz/eksik
+    /// kayıtlar atlanır. Dosya okunamaz/ayrıştırılamazsa küçük bir gömülü liste
+    /// devreye girer.
+    /// </summary>
+    private static void SeedNames(AppDbContext db)
+    {
+        // Tablo boş değilse dokunma (idempotentlik koruması).
+        if (db.BabyNames.Local.Count > 0 || db.BabyNames.Any()) return;
+
+        var names = LoadNamesFromFile() ?? FallbackNames();
+
+        var seen = new HashSet<(string, string)>();
+        foreach (var n in names)
+        {
+            var name = n.Name?.Trim();
+            var gender = n.Gender?.Trim().ToUpperInvariant();
+            if (string.IsNullOrWhiteSpace(name)) continue;
+            if (gender != "K" && gender != "E") continue;            // yalnızca K/E
+            if (!seen.Add((name.ToLowerInvariant(), gender))) continue; // (Ad, Cinsiyet) tekilleştir
+
+            var meaning = string.IsNullOrWhiteSpace(n.Meaning) ? null : n.Meaning.Trim();
+            db.BabyNames.Add(new BabyName { Name = name, Gender = gender, Meaning = meaning });
+        }
+    }
+
+    private static List<NameSeed>? LoadNamesFromFile()
+    {
+        try
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "Data", "Seed", "baby-names.json");
+            if (!File.Exists(path)) return null;
+
+            var json = File.ReadAllText(path);
+            var names = JsonSerializer.Deserialize<List<NameSeed>>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+            });
+
+            return names is { Count: > 0 } ? names : null;
+        }
+        catch
+        {
+            // Bozuk/okunamayan dosyada sessizce gömülü listeye düş.
+            return null;
+        }
+    }
+
+    /// <summary>Dosya yüklenemezse kullanılan asgari gömülü liste.</summary>
+    private static List<NameSeed> FallbackNames() =>
+    [
+        new("Elif", "K", "Arap alfabesinin ilk harfi; ince, narin"),
+        new("Defne", "K", "Yaprağını dökmeyen güzel kokulu ağaç"),
+        new("Zeynep", "K", "Değerli, güzel kokulu bir ağaç"),
+        new("Duru", "K", "Saf, berrak"),
+        new("Nehir", "K", "Irmak, akarsu"),
+        new("Yusuf", "E", "Allah kat kat artırsın; bir peygamber adı"),
+        new("Yiğit", "E", "Cesur, kahraman, yürekli"),
+        new("Emir", "E", "Bey, komutan; buyruk veren"),
+        new("Demir", "E", "Güçlü, sağlam, dayanıklı"),
+        new("Çınar", "E", "Uzun ömürlü, ulu ağaç"),
     ];
 }
