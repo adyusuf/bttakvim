@@ -109,7 +109,9 @@ Referans görsellerdeki yaprak düzeni, tek sütun mobil akışa uyarlanır:
    yaprak & blog yorum dizileri).
 5. **Faz 4 — Admin paneli (web /admin):** dashboard, kategori & içerik CRUD, geçmişte bugün CRUD,
    blog CRUD, yaprak listesi + reset, yorum/rapor moderasyonu, ayarlar (random/sabit), dış kaynaktan içe aktarma.
-6. **Faz 5 — Gerçek entegrasyonlar:** Diyanet namaz vakitleri, bilimsel ay API'si, söz/isim API'leri.
+6. **Faz 5 — Gerçek entegrasyonlar (✅ tamamlandı):** namaz vakitleri Aladhan API (method=13, Diyanet açıları;
+   yerel astronomik yedek), hicrî tarih Aladhan gToH ile doğrulanan yerel UmAlQura, ay evresi yerel bilimsel
+   hesap (Meeus), söz/isim PostgreSQL veri kümeleri. Admin: Entegrasyonlar (varsayılanlar) + Entegrasyon İzleme.
 
 ## 8. Açık Noktalar / Varsayılanlar
 
