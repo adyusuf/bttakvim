@@ -208,6 +208,17 @@ public class AdminController(AppDbContext db, LeafService leafService, Integrati
             .Select(q => new { q.Id, q.Text, q.Author, q.IsActive })
             .ToListAsync(ct));
 
+    /// <summary>
+    /// Gömülü söz veri kümesini içe aktarır (yıkıcı değil): yalnızca eksik kayıtları ekler,
+    /// mevcutları değiştirmez. { datasetTotal, alreadyPresent, added } döner.
+    /// </summary>
+    [HttpPost("quotes/import")]
+    public async Task<IActionResult> ImportQuotes(CancellationToken ct)
+    {
+        var r = await DbSeeder.ImportQuotesAsync(db, ct);
+        return Ok(new { datasetTotal = r.DatasetTotal, alreadyPresent = r.AlreadyPresent, added = r.Added });
+    }
+
     public record QuoteRequest(string Text, string? Author, bool IsActive);
 
     [HttpPost("quotes")]
@@ -250,6 +261,17 @@ public class AdminController(AppDbContext db, LeafService leafService, Integrati
         return Ok(await query.OrderByDescending(n => n.Id)
             .Select(n => new { n.Id, n.Name, n.Gender, n.Meaning, n.IsActive })
             .ToListAsync(ct));
+    }
+
+    /// <summary>
+    /// Gömülü bebek ismi veri kümesini içe aktarır (yıkıcı değil): yalnızca eksik kayıtları ekler,
+    /// mevcutları değiştirmez. { datasetTotal, alreadyPresent, added } döner.
+    /// </summary>
+    [HttpPost("names/import")]
+    public async Task<IActionResult> ImportNames(CancellationToken ct)
+    {
+        var r = await DbSeeder.ImportNamesAsync(db, ct);
+        return Ok(new { datasetTotal = r.DatasetTotal, alreadyPresent = r.AlreadyPresent, added = r.Added });
     }
 
     public record BabyNameRequest(string Name, string Gender, string? Meaning, bool IsActive);

@@ -347,6 +347,9 @@ public static class DbSeeder
         M("Deniz Sofrası", "Balık çorbası, Fırında levrek, Roka salatası, Cevizli baklava");
     }
 
+    /// <summary>Veri kümesi içe aktarma sonucu: toplam, zaten var olan, yeni eklenen.</summary>
+    public sealed record ImportResult(int DatasetTotal, int AlreadyPresent, int Added);
+
     private sealed record QuoteSeed(string Text, string? Author);
 
     /// <summary>
@@ -359,19 +362,58 @@ public static class DbSeeder
         // Tablo boş değilse dokunma (idempotentlik koruması).
         if (db.Quotes.Local.Count > 0 || db.Quotes.Any()) return;
 
-        var quotes = LoadQuotesFromFile() ?? FallbackQuotes();
+        db.Quotes.AddRange(BuildQuotesToInsert(LoadQuotesFromFile() ?? FallbackQuotes(), existingTexts: null));
+    }
 
+    /// <summary>
+    /// Gömülü söz veri kümesini ALREADY-POPULATED veritabanına yıkıcı olmadan
+    /// (yalnızca eksikleri ekleyerek) içe aktarır. Metne göre büyük/küçük harf
+    /// duyarsız tekilleştirilir; mevcut kayıtlar değiştirilmez/silinmez.
+    /// </summary>
+    public static async Task<ImportResult> ImportQuotesAsync(AppDbContext db, CancellationToken ct = default)
+    {
+        var dataset = LoadQuotesFromFile() ?? FallbackQuotes();
+
+        var existing = new HashSet<string>(
+            await db.Quotes.Select(q => q.Text).ToListAsync(ct),
+            StringComparer.OrdinalIgnoreCase);
+
+        var (datasetTotal, toInsert) = CountAndBuildQuotes(dataset, existing);
+        if (toInsert.Count > 0)
+        {
+            db.Quotes.AddRange(toInsert);
+            await db.SaveChangesAsync(ct);
+        }
+        return new ImportResult(datasetTotal, datasetTotal - toInsert.Count, toInsert.Count);
+    }
+
+    /// <summary>
+    /// Veri kümesindeki geçerli (boş olmayan, kendi içinde tekil) sözleri sayar ve
+    /// <paramref name="existingTexts"/> içinde olmayanlardan eklenecek Quote listesi üretir.
+    /// </summary>
+    private static (int DatasetTotal, List<Quote> ToInsert) CountAndBuildQuotes(
+        List<QuoteSeed> dataset, HashSet<string> existingTexts)
+    {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var q in quotes)
+        var toInsert = new List<Quote>();
+        var datasetTotal = 0;
+        foreach (var q in dataset)
         {
             var text = q.Text?.Trim();
             if (string.IsNullOrWhiteSpace(text)) continue;
-            if (!seen.Add(text)) continue; // metne göre tekilleştir
+            if (!seen.Add(text)) continue; // veri kümesi içinde tekilleştir
+            datasetTotal++;
+            if (existingTexts.Contains(text)) continue; // mevcutsa atla (additive)
 
             var author = string.IsNullOrWhiteSpace(q.Author) ? null : q.Author.Trim();
-            db.Quotes.Add(new Quote { Text = text, Author = author });
+            toInsert.Add(new Quote { Text = text, Author = author });
         }
+        return (datasetTotal, toInsert);
     }
+
+    /// <summary>Boş-DB seed yolu için: tüm geçerli/tekil sözleri Quote listesine dönüştürür.</summary>
+    private static List<Quote> BuildQuotesToInsert(List<QuoteSeed> dataset, HashSet<string>? existingTexts)
+        => CountAndBuildQuotes(dataset, existingTexts ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase)).ToInsert;
 
     private static List<QuoteSeed>? LoadQuotesFromFile()
     {
@@ -422,21 +464,60 @@ public static class DbSeeder
         // Tablo boş değilse dokunma (idempotentlik koruması).
         if (db.BabyNames.Local.Count > 0 || db.BabyNames.Any()) return;
 
-        var names = LoadNamesFromFile() ?? FallbackNames();
+        db.BabyNames.AddRange(BuildNamesToInsert(LoadNamesFromFile() ?? FallbackNames(), existingKeys: null));
+    }
 
+    /// <summary>
+    /// Gömülü bebek ismi veri kümesini ALREADY-POPULATED veritabanına yıkıcı olmadan
+    /// (yalnızca eksikleri ekleyerek) içe aktarır. (Ad, Cinsiyet) çiftine göre
+    /// büyük/küçük harf duyarsız tekilleştirilir; mevcut kayıtlar değiştirilmez/silinmez.
+    /// </summary>
+    public static async Task<ImportResult> ImportNamesAsync(AppDbContext db, CancellationToken ct = default)
+    {
+        var dataset = LoadNamesFromFile() ?? FallbackNames();
+
+        var existing = new HashSet<(string, string)>(
+            (await db.BabyNames.Select(n => new { n.Name, n.Gender }).ToListAsync(ct))
+                .Select(n => (n.Name.Trim().ToLowerInvariant(), n.Gender.Trim().ToUpperInvariant())));
+
+        var (datasetTotal, toInsert) = CountAndBuildNames(dataset, existing);
+        if (toInsert.Count > 0)
+        {
+            db.BabyNames.AddRange(toInsert);
+            await db.SaveChangesAsync(ct);
+        }
+        return new ImportResult(datasetTotal, datasetTotal - toInsert.Count, toInsert.Count);
+    }
+
+    /// <summary>
+    /// Veri kümesindeki geçerli (Ad dolu, Cinsiyet K/E, kendi içinde tekil) isimleri sayar ve
+    /// <paramref name="existingKeys"/> içinde (ad-küçük, cinsiyet-büyük) olmayanlardan eklenecek liste üretir.
+    /// </summary>
+    private static (int DatasetTotal, List<BabyName> ToInsert) CountAndBuildNames(
+        List<NameSeed> dataset, HashSet<(string, string)> existingKeys)
+    {
         var seen = new HashSet<(string, string)>();
-        foreach (var n in names)
+        var toInsert = new List<BabyName>();
+        var datasetTotal = 0;
+        foreach (var n in dataset)
         {
             var name = n.Name?.Trim();
             var gender = n.Gender?.Trim().ToUpperInvariant();
             if (string.IsNullOrWhiteSpace(name)) continue;
             if (gender != "K" && gender != "E") continue;            // yalnızca K/E
-            if (!seen.Add((name.ToLowerInvariant(), gender))) continue; // (Ad, Cinsiyet) tekilleştir
+            if (!seen.Add((name.ToLowerInvariant(), gender))) continue; // veri kümesi içinde tekilleştir
+            datasetTotal++;
+            if (existingKeys.Contains((name.ToLowerInvariant(), gender))) continue; // mevcutsa atla (additive)
 
             var meaning = string.IsNullOrWhiteSpace(n.Meaning) ? null : n.Meaning.Trim();
-            db.BabyNames.Add(new BabyName { Name = name, Gender = gender, Meaning = meaning });
+            toInsert.Add(new BabyName { Name = name, Gender = gender, Meaning = meaning });
         }
+        return (datasetTotal, toInsert);
     }
+
+    /// <summary>Boş-DB seed yolu için: tüm geçerli/tekil isimleri BabyName listesine dönüştürür.</summary>
+    private static List<BabyName> BuildNamesToInsert(List<NameSeed> dataset, HashSet<(string, string)>? existingKeys)
+        => CountAndBuildNames(dataset, existingKeys ?? new HashSet<(string, string)>()).ToInsert;
 
     private static List<NameSeed>? LoadNamesFromFile()
     {

@@ -1,20 +1,32 @@
-import { Pencil, Plus, Trash } from '@phosphor-icons/react';
+import { DownloadSimple, Pencil, Plus, Trash } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import { adminApi } from '../api';
 import { Field, Modal } from '../ui';
 import { useAsyncAction } from '../useAsyncAction';
 
 interface Quote { id: number; text: string; author: string | null; isActive: boolean; }
+interface ImportResult { datasetTotal: number; alreadyPresent: number; added: number; }
 
 const EMPTY = { text: '', author: '', isActive: true };
 
 export function Quotes() {
   const [list, setList] = useState<Quote[]>([]);
   const [editing, setEditing] = useState<Quote | typeof EMPTY | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   const { busy, err, setErr, run } = useAsyncAction();
 
   const load = () => adminApi.get<Quote[]>('/api/admin/quotes').then(setList).catch(() => {});
   useEffect(() => { load(); }, []);
+
+  const importDataset = async () => {
+    if (!confirm('Gömülü söz veri kümesi içe aktarılsın mı? Eksik kayıtlar eklenir, mevcutlar değiştirilmez.')) return;
+    setNote(null);
+    await run(async () => {
+      const r = await adminApi.post<ImportResult>('/api/admin/quotes/import', {});
+      setNote(`${r.added} yeni eklendi · ${r.alreadyPresent} zaten vardı`);
+      await load();
+    });
+  };
 
   const save = async () => {
     if (!editing) return;
@@ -40,10 +52,19 @@ export function Quotes() {
           <div className="adm-title">Sözler</div>
           <div className="adm-sub">Atasözü, vecize ve özlü söz havuzu</div>
         </div>
-        <button className="adm-btn" onClick={() => { setErr(null); setEditing({ ...EMPTY }); }}>
-          <Plus size={16} /> Yeni Söz
-        </button>
+        <div className="adm-actions">
+          <button className="adm-btn ghost" disabled={busy} onClick={importDataset}
+            title="Eksik kayıtları ekler, mevcutları değiştirmez">
+            <DownloadSimple size={16} /> Veri kümesini içe aktar
+          </button>
+          <button className="adm-btn" onClick={() => { setErr(null); setEditing({ ...EMPTY }); }}>
+            <Plus size={16} /> Yeni Söz
+          </button>
+        </div>
       </div>
+
+      {note ? <div className="adm-note">{note}</div> : null}
+      {err && !editing ? <div className="adm-err">{err}</div> : null}
 
       <table className="adm-table">
         <thead><tr><th>Söz metni</th><th>Yazar</th><th>Durum</th><th></th></tr></thead>

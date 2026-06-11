@@ -66,6 +66,7 @@
 .adm-modal-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 22px; border-top: 1px solid var(--rule); }
 .adm-hint { font-size: 12px; color: var(--text-muted); }
 .adm-err { background: var(--red-wash); color: var(--red-2); border-radius: var(--radius-sm); padding: 9px 12px; font-size: 13px; }
+.adm-note { background: var(--green-wash); color: var(--green-0); border-radius: var(--radius-sm); padding: 9px 12px; font-size: 13px; margin-bottom: 16px; }
 
 /* Login */
 .adm-login { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--surface-app); background-image: var(--paper-grain); }

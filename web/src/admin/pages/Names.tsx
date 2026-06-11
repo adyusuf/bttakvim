@@ -1,10 +1,11 @@
-import { Pencil, Plus, Trash } from '@phosphor-icons/react';
+import { DownloadSimple, Pencil, Plus, Trash } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import { adminApi } from '../api';
 import { Field, Modal } from '../ui';
 import { useAsyncAction } from '../useAsyncAction';
 
 interface BabyName { id: number; name: string; gender: string; meaning: string | null; isActive: boolean; }
+interface ImportResult { datasetTotal: number; alreadyPresent: number; added: number; }
 
 const EMPTY = { name: '', gender: 'K', meaning: '', isActive: true };
 
@@ -13,6 +14,7 @@ export function Names() {
   const [gender, setGender] = useState<'' | 'K' | 'E'>('');
   const [q, setQ] = useState('');
   const [editing, setEditing] = useState<BabyName | typeof EMPTY | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   const { busy, err, setErr, run } = useAsyncAction();
 
   const load = () => {
@@ -41,6 +43,16 @@ export function Names() {
     load();
   };
 
+  const importDataset = async () => {
+    if (!confirm('Gömülü isim veri kümesi içe aktarılsın mı? Eksik kayıtlar eklenir, mevcutlar değiştirilmez.')) return;
+    setNote(null);
+    await run(async () => {
+      const r = await adminApi.post<ImportResult>('/api/admin/names/import', {});
+      setNote(`${r.added} yeni eklendi · ${r.alreadyPresent} zaten vardı`);
+      load();
+    });
+  };
+
   return (
     <>
       <div className="adm-head">
@@ -48,10 +60,19 @@ export function Names() {
           <div className="adm-title">İsimler</div>
           <div className="adm-sub">Bebek isimleri havuzu</div>
         </div>
-        <button className="adm-btn" onClick={() => { setErr(null); setEditing({ ...EMPTY }); }}>
-          <Plus size={16} /> Yeni İsim
-        </button>
+        <div className="adm-actions">
+          <button className="adm-btn ghost" disabled={busy} onClick={importDataset}
+            title="Eksik kayıtları ekler, mevcutları değiştirmez">
+            <DownloadSimple size={16} /> Veri kümesini içe aktar
+          </button>
+          <button className="adm-btn" onClick={() => { setErr(null); setEditing({ ...EMPTY }); }}>
+            <Plus size={16} /> Yeni İsim
+          </button>
+        </div>
       </div>
+
+      {note ? <div className="adm-note">{note}</div> : null}
+      {err && !editing ? <div className="adm-err">{err}</div> : null}
 
       <div className="adm-field-row" style={{ marginBottom: 16 }}>
         <div className="adm-field" style={{ maxWidth: 200 }}>
