@@ -1,4 +1,5 @@
 using System.Globalization;
+using Microsoft.Extensions.Configuration;
 
 namespace BTTakvim.Api.Services;
 
@@ -10,10 +11,17 @@ public record ColdPeriod(string Label, int Day);
 /// <summary>
 /// Hicri, Rumi, Kasım/Hızır günleri ve Zemheri/Hamsin hesapları.
 /// Bunlar dış servis değil; klasik takvim yapraklarındaki kurallarla yerel hesaplanır.
+/// Hicrî gün-ofseti (<c>Calendar:HijriDayOffset</c>) ile Diyanet ilanına ±1 gün hizalanabilir.
 /// </summary>
-public class TurkishCalendarService
+public class TurkishCalendarService(IConfiguration configuration)
 {
     private static readonly UmAlQuraCalendar Hijri = new();
+
+    /// <summary>
+    /// UmAlQura hesabı Diyanet ilanından ara sıra ±1 gün sapabilir; bu ofset
+    /// (gün cinsinden) tarihe uygulanarak hizalama sağlanır. Varsayılan 0.
+    /// </summary>
+    private readonly int _hijriDayOffset = configuration.GetValue<int>("Calendar:HijriDayOffset", 0);
 
     private static readonly string[] HijriMonths =
     [
@@ -36,14 +44,24 @@ public class TurkishCalendarService
 
     public static string WeekdayName(DateOnly date) => TurkishDays[(int)date.DayOfWeek];
 
+    /// <summary>
+    /// Yerel (UmAlQura) hicrî tarih + yapılandırılmış gün-ofseti. Çevrimdışı,
+    /// deterministik ve daima kullanılabilir; yaprak üretiminin esas kaynağıdır.
+    /// </summary>
     public HijriDate GetHijri(DateOnly date)
     {
-        var dt = date.ToDateTime(TimeOnly.MinValue);
+        var dt = date.AddDays(_hijriDayOffset).ToDateTime(TimeOnly.MinValue);
         return new HijriDate(
             Hijri.GetDayOfMonth(dt),
             HijriMonths[Hijri.GetMonth(dt) - 1],
             Hijri.GetYear(dt));
     }
+
+    /// <summary>
+    /// Bir hicrî ay numarasını (1-12) Türkçe ay adına çevirir. Aladhan gibi dış
+    /// kaynaklardan gelen sayısal ayı yerel adlandırmayla eşlemek için kullanılır.
+    /// </summary>
+    public static string HijriMonthName(int month) => HijriMonths[month - 1];
 
     /// <summary>
     /// Rumi tarih: Jülyen takvimine dönüştürülür (modern dönemde 13 gün geri),

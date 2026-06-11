@@ -23,6 +23,7 @@ builder.Services.AddSingleton<IMoonPhaseProvider, MockMoonPhaseProvider>();
 builder.Services.AddHttpClient();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<IPrayerTimesProvider, AladhanPrayerTimesProvider>();
+builder.Services.AddSingleton<IHijriDateProvider, AladhanHijriDateProvider>();
 builder.Services.AddScoped<IQuoteProvider, DbQuoteProvider>();
 builder.Services.AddScoped<INameProvider, DbNameProvider>();
 builder.Services.AddScoped<LeafService>();
