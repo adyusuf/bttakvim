@@ -60,5 +60,8 @@ Backend `localhost:5210`'da değilse: `web/.env` içine `VITE_API_URL=http://...
 - Admin sıfırlayabilir: `DELETE /api/admin/leaves/{yyyy-MM-dd}` → sonraki ziyarette yeniden üretilir.
 - Gezilmeyen tarihler veritabanına yazılmaz.
 - Namaz vakitleri/kıble saati/gündüz süresi konuma bağlıdır; yaprağa gömülmez, istek anında hesaplanır.
-- Ay evresi, namaz vakitleri, özlü söz ve isim sağlayıcıları **mock-first** arayüzlerin arkasındadır;
-  Faz 5'te gerçek servislere (Diyanet, bilimsel ay API'si) bağlanacak.
+- Sağlayıcılar arayüzlerin arkasında soyutlanmıştır ve **gerçek kaynaklara bağlıdır**: namaz vakitleri
+  **Aladhan API** (method=13, Diyanet açıları), hicrî tarih **Aladhan gToH** ile doğrulanan yerel UmAlQura,
+  ay evresi yerel **bilimsel hesap (Meeus)**, özlü söz ve isimler **PostgreSQL**'den. Aladhan'a ulaşılamazsa
+  otomatik yerel hesaba düşülür; varsayılanlar ve trafiği admin **Entegrasyonlar** / **Entegrasyon İzleme**
+  sayfalarından yönetilir.

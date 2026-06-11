@@ -237,7 +237,7 @@ export function Vakitler() {
       </div>
       {prayer?.source.startsWith('mock') ? (
         <p style={{ textAlign: 'center', fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--text-faint)', marginTop: 16 }}>
-          Vakitler geçici olarak yerel hesapla üretiliyor; Diyanet İşleri Başkanlığı servisi bağlanacak.
+          Vakitler şu an yerel astronomik hesapla üretiliyor (Aladhan servisine ulaşılamadı); bağlantı sağlanınca güncel değerler gösterilir.
         </p>
       ) : null}
     </main>
