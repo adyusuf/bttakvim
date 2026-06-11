@@ -29,6 +29,7 @@ public class CalendarLeaf
     public string MoonPhaseName { get; set; } = "";
     public string MoonEmoji { get; set; } = "";
     public double MoonIllumination { get; set; }
+    public string MoonSource { get; set; } = "";
 
     // Üretim anında alınan anlık görüntüler — kaynak değişse de yaprak değişmez.
     public string QuoteText { get; set; } = "";

@@ -1,5 +1,5 @@
 import {
-  ChartBar, FileText, Gear, Newspaper, Scroll, SignOut, Stack, Tag, WarningCircle,
+  Baby, ChartBar, FileText, Gear, Newspaper, PlugsConnected, Pulse, Quotes, Scroll, SignOut, Stack, Tag, WarningCircle,
 } from '@phosphor-icons/react';
 import { NavLink, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { useAdminAuth } from './auth-context';
@@ -7,21 +7,29 @@ import { AdminLogin } from './Login';
 import { Dashboard } from './pages/Dashboard';
 import { Categories } from './pages/Categories';
 import { ContentItems } from './pages/ContentItems';
+import { Quotes as QuotesPage } from './pages/Quotes';
+import { Names } from './pages/Names';
 import { HistoryEvents } from './pages/HistoryEvents';
 import { BlogPosts } from './pages/BlogPosts';
 import { Leaves } from './pages/Leaves';
 import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
+import { Integrations } from './pages/Integrations';
+import { IntegrationLog } from './pages/IntegrationLog';
 import './admin.css';
 
 const NAV = [
   { to: '/admin', end: true, label: 'Panel', Icon: ChartBar },
   { to: '/admin/kategoriler', label: 'Kategoriler', Icon: Tag },
   { to: '/admin/icerikler', label: 'İçerik Öğeleri', Icon: Stack },
+  { to: '/admin/sozler', label: 'Sözler', Icon: Quotes },
+  { to: '/admin/isimler', label: 'İsimler', Icon: Baby },
   { to: '/admin/gecmiste-bugun', label: 'Geçmişte Bugün', Icon: Scroll },
   { to: '/admin/blog', label: 'Blog Yazıları', Icon: Newspaper },
   { to: '/admin/yapraklar', label: 'Yapraklar', Icon: FileText },
   { to: '/admin/raporlar', label: 'Moderasyon', Icon: WarningCircle },
+  { to: '/admin/entegrasyonlar', label: 'Entegrasyonlar', Icon: PlugsConnected },
+  { to: '/admin/entegrasyon-izleme', label: 'Entegrasyon İzleme', Icon: Pulse },
   { to: '/admin/ayarlar', label: 'Ayarlar', Icon: Gear },
 ];
 
@@ -55,10 +63,14 @@ function Shell() {
           <Route index element={<Dashboard />} />
           <Route path="kategoriler" element={<Categories />} />
           <Route path="icerikler" element={<ContentItems />} />
+          <Route path="sozler" element={<QuotesPage />} />
+          <Route path="isimler" element={<Names />} />
           <Route path="gecmiste-bugun" element={<HistoryEvents />} />
           <Route path="blog" element={<BlogPosts />} />
           <Route path="yapraklar" element={<Leaves />} />
           <Route path="raporlar" element={<Reports />} />
+          <Route path="entegrasyonlar" element={<Integrations />} />
+          <Route path="entegrasyon-izleme" element={<IntegrationLog />} />
           <Route path="ayarlar" element={<Settings />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>

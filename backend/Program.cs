@@ -19,15 +19,29 @@ builder.Services.AddControllers().AddJsonOptions(o =>
 
 // Takvim hesapları ve sağlayıcılar (mock-first; Faz 5'te gerçek servislerle değiştirilecek)
 builder.Services.AddSingleton<TurkishCalendarService>();
-builder.Services.AddSingleton<IMoonPhaseProvider, MockMoonPhaseProvider>();
-builder.Services.AddSingleton<IPrayerTimesProvider, MockDiyanetPrayerTimesProvider>();
+builder.Services.AddSingleton<IMoonPhaseProvider, AstronomicalMoonPhaseProvider>();
+builder.Services.AddHttpClient();
+// Aladhan dış API'leri için 5sn zaman aşımlı adlandırılmış istemci (timeout kayıtta bir kez
+// ayarlanır; SINGLETON sağlayıcılar eşzamanlılık altında .Timeout mutasyonu yapmamalı).
+builder.Services.AddHttpClient("aladhan", c => c.Timeout = TimeSpan.FromSeconds(5));
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<IntegrationCallLog>();
+builder.Services.AddSingleton<IPrayerTimesProvider, AladhanPrayerTimesProvider>();
+builder.Services.AddSingleton<IHijriDateProvider, AladhanHijriDateProvider>();
 builder.Services.AddScoped<IQuoteProvider, DbQuoteProvider>();
 builder.Services.AddScoped<INameProvider, DbNameProvider>();
 builder.Services.AddScoped<LeafService>();
 builder.Services.AddScoped<AuthService>();
 
 // Admin JWT kimlik doğrulama
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "bttakvim-dev-secret-key-change-in-production-please-32+";
+var jwtKey = builder.Configuration["Jwt:Key"];
+if (string.IsNullOrWhiteSpace(jwtKey))
+{
+    if (builder.Environment.IsProduction())
+        throw new InvalidOperationException(
+            "Jwt:Key (ortam değişkeni Jwt__Key) üretimde zorunludur ve en az 32 karakter olmalıdır.");
+    jwtKey = "bttakvim-dev-secret-key-change-in-production-please-32+";
+}
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(opt =>
     {

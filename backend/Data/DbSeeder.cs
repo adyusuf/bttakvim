@@ -1,3 +1,4 @@
+using System.Text.Json;
 using BTTakvim.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,7 +18,14 @@ public static class DbSeeder
         db.Settings.AddRange(
             new AppSetting { Key = "content_mode", Value = "random" }, // random | fixed
             new AppSetting { Key = "moon_provider", Value = "mock" },
-            new AppSetting { Key = "prayer_provider", Value = "mock-diyanet" });
+            new AppSetting { Key = "prayer_provider", Value = "mock-diyanet" },
+            // ---- Entegrasyon ayarları (admin panelinden düzenlenebilir) ----
+            // Hicrî gün-ofseti: UmAlQura hesabını Diyanet ilanına ±gün hizalar (yedek: appsettings Calendar:HijriDayOffset, ardından 0).
+            new AppSetting { Key = "hijri_day_offset", Value = "0" },
+            // Namaz vakti varsayılanları: istemci parametre göndermezse kullanılır (istemci değeri yine de geçersiz kılar).
+            new AppSetting { Key = "prayer_default_method", Value = "13" },   // 13 = Diyanet
+            new AppSetting { Key = "prayer_default_school", Value = "0" },    // 0 = Şâfiî/standart, 1 = Hanefî
+            new AppSetting { Key = "prayer_default_tune", Value = "0,0,0,0,0,0" }); // imsak,gunes,ogle,ikindi,aksam,yatsi
 
         // ---- İçerik kategorileri ----
         var categories = new Dictionary<string, ContentCategory>();
@@ -210,45 +218,17 @@ public static class DbSeeder
         History(12, 17, 1903, "Wright kardeşler, motorlu bir uçakla tarihteki ilk kontrollü uçuşu gerçekleştirdi.");
 
         // ---- Özlü sözler ----
-        void Q(string text, string? author) => db.Quotes.Add(new Quote { Text = text, Author = author });
-
-        Q("Bir millet, savaş meydanlarında ne kadar parlak zaferler elde ederse etsin, o zaferlerin yaşayacak neticeler vermesi ancak irfan ordusuyla kaimdir.", "Mustafa Kemal Atatürk");
-        Q("Erdem servetlerin en büyüğüdür.", "Naci Kasım");
-        Q("Güzellik kısa ömürlü bir istibdattır.", "George B. Shaw");
-        Q("Hayatta en hakiki mürşit ilimdir.", "Mustafa Kemal Atatürk");
-        Q("Bilgi, paylaşıldıkça çoğalan tek hazinedir.", null);
-        Q("Az söyle, çok dinle; bir gün dinlediklerin konuştuklarını süsler.", "Mevlâna");
-        Q("Damlaya damlaya göl olur.", "Atasözü");
-        Q("Kaybettiğin her dakika, bir daha geri gelmeyecek bir ömür parçasıdır.", null);
-        Q("Ne kadar bilirsen bil, söylediklerin karşındakinin anlayabildiği kadardır.", "Mevlâna");
-        Q("Sabır acıdır, meyvesi tatlıdır.", "Atasözü");
-        Q("İyi olduğunuz için herkesin size adil davranmasını beklemek, vejetaryen olduğunuz için boğanın saldırmayacağını düşünmeye benzer.", "Dennis Wholey");
-        Q("Okumak, bir insanı doldurur; konuşmak hazırlar; yazmak ise olgunlaştırır.", "Francis Bacon");
+        // Toplu, küratörlü "günün sözü" veri kümesi Data/Seed/quotes.json dosyasından
+        // yüklenir (atasözleri + kaynağı sağlam vecizeler). Tablo boşken metne göre
+        // tekilleştirilerek eklenir; dosya okunamazsa küçük bir gömülü liste kullanılır.
+        SeedQuotes(db);
 
         // ---- İsimler ----
-        void N(string name, string gender, string meaning) =>
-            db.BabyNames.Add(new BabyName { Name = name, Gender = gender, Meaning = meaning });
-
-        N("İzel", "K", "Çok güzel, eşsiz");
-        N("Elif", "K", "Arap alfabesinin ilk harfi; ince, narin");
-        N("Defne", "K", "Yapraklarını dökmeyen güzel kokulu ağaç");
-        N("Zeynep", "K", "Değerli taşlar, mücevher");
-        N("Asel", "K", "Bal");
-        N("Duru", "K", "Saf, berrak");
-        N("Nehir", "K", "Akarsu, ırmak");
-        N("Miray", "K", "Ayın yansıması gibi parlak");
-        N("Azra", "K", "El değmemiş, kusursuz");
-        N("İpek", "K", "İpek böceğinin ürettiği değerli iplik gibi yumuşak");
-        N("Acun", "E", "Dünya, kâinat");
-        N("Yiğit", "E", "Cesur, kahraman");
-        N("Emir", "E", "Yöneten, buyruk veren");
-        N("Aras", "E", "Doğu Anadolu'dan doğan nehir");
-        N("Kerem", "E", "Cömertlik, soyluluk");
-        N("Demir", "E", "Güçlü, sağlam");
-        N("Çınar", "E", "Uzun ömürlü, ulu ağaç");
-        N("Atlas", "E", "Dünyayı omuzlarında taşıyan titan; ipekli kumaş");
-        N("Mert", "E", "Sözünün eri, yürekli");
-        N("Alp", "E", "Kahraman, yiğit savaşçı");
+        // Küratörlü bebek ismi + anlamı veri kümesi Data/Seed/baby-names.json
+        // dosyasından yüklenir. Tablo boşken (Ad, Cinsiyet) çiftine göre
+        // tekilleştirilerek eklenir; dosya okunamazsa küçük bir gömülü liste
+        // devreye girer (quotes.json deseninin aynısı).
+        SeedNames(db);
 
         // ---- Blog ----
         var blogCats = new Dictionary<string, BlogCategory>();
@@ -323,6 +303,8 @@ public static class DbSeeder
     /// </summary>
     private static async Task EnsureAdditionsAsync(AppDbContext db)
     {
+        await EnsureSettingsAsync(db);
+
         if (await db.ContentCategories.AnyAsync(c => c.Slug == "gunun-sohbeti")) return;
 
         var maxSort = await db.ContentCategories.MaxAsync(c => (int?)c.SortOrder) ?? 0;
@@ -331,6 +313,34 @@ public static class DbSeeder
         db.ContentCategories.AddRange(sohbet, menu);
         AddSohbetVeMenuItems(db, sohbet, menu);
         await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Daha önce seed edilmiş (yükseltilen) veritabanlarına yeni entegrasyon ayarı
+    /// anahtarlarını idempotent ekler. Yalnızca eksik anahtarlar eklenir; mevcut
+    /// değerler korunur (üzerine yazılmaz).
+    /// </summary>
+    private static async Task EnsureSettingsAsync(AppDbContext db)
+    {
+        var defaults = new (string Key, string Value)[]
+        {
+            ("hijri_day_offset", "0"),
+            ("prayer_default_method", "13"),
+            ("prayer_default_school", "0"),
+            ("prayer_default_tune", "0,0,0,0,0,0"),
+        };
+
+        var existing = await db.Settings.Select(s => s.Key).ToListAsync();
+        var existingSet = new HashSet<string>(existing);
+
+        var added = false;
+        foreach (var (key, value) in defaults)
+        {
+            if (existingSet.Contains(key)) continue;
+            db.Settings.Add(new AppSetting { Key = key, Value = value });
+            added = true;
+        }
+        if (added) await db.SaveChangesAsync();
     }
 
     /// <summary>Günün Sohbeti yazıları + Günün Menüsü (virgülle ayrılmış yemekler).</summary>
@@ -366,4 +376,213 @@ public static class DbSeeder
         M("Anadolu Sofrası", "Düğün çorbası, Karnıyarık, Bulgur pilavı, Ayran");
         M("Deniz Sofrası", "Balık çorbası, Fırında levrek, Roka salatası, Cevizli baklava");
     }
+
+    /// <summary>Veri kümesi içe aktarma sonucu: toplam, zaten var olan, yeni eklenen.</summary>
+    public sealed record ImportResult(int DatasetTotal, int AlreadyPresent, int Added);
+
+    private sealed record QuoteSeed(string Text, string? Author);
+
+    /// <summary>
+    /// "Günün sözü" verisini Data/Seed/quotes.json dosyasından idempotent yükler.
+    /// Yalnızca Quotes tablosu boşken ekler; metne göre tekilleştirir. Dosya
+    /// okunamaz/ayrıştırılamazsa küçük bir gömülü liste devreye girer.
+    /// </summary>
+    private static void SeedQuotes(AppDbContext db)
+    {
+        // Tablo boş değilse dokunma (idempotentlik koruması).
+        if (db.Quotes.Local.Count > 0 || db.Quotes.Any()) return;
+
+        db.Quotes.AddRange(BuildQuotesToInsert(LoadQuotesFromFile() ?? FallbackQuotes(), existingTexts: null));
+    }
+
+    /// <summary>
+    /// Gömülü söz veri kümesini ALREADY-POPULATED veritabanına yıkıcı olmadan
+    /// (yalnızca eksikleri ekleyerek) içe aktarır. Metne göre büyük/küçük harf
+    /// duyarsız tekilleştirilir; mevcut kayıtlar değiştirilmez/silinmez.
+    /// </summary>
+    public static async Task<ImportResult> ImportQuotesAsync(AppDbContext db, CancellationToken ct = default)
+    {
+        var dataset = LoadQuotesFromFile() ?? FallbackQuotes();
+
+        var existing = new HashSet<string>(
+            await db.Quotes.Select(q => q.Text).ToListAsync(ct),
+            StringComparer.OrdinalIgnoreCase);
+
+        var (datasetTotal, toInsert) = CountAndBuildQuotes(dataset, existing);
+        if (toInsert.Count > 0)
+        {
+            db.Quotes.AddRange(toInsert);
+            await db.SaveChangesAsync(ct);
+        }
+        return new ImportResult(datasetTotal, datasetTotal - toInsert.Count, toInsert.Count);
+    }
+
+    /// <summary>
+    /// Veri kümesindeki geçerli (boş olmayan, kendi içinde tekil) sözleri sayar ve
+    /// <paramref name="existingTexts"/> içinde olmayanlardan eklenecek Quote listesi üretir.
+    /// </summary>
+    private static (int DatasetTotal, List<Quote> ToInsert) CountAndBuildQuotes(
+        List<QuoteSeed> dataset, HashSet<string> existingTexts)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var toInsert = new List<Quote>();
+        var datasetTotal = 0;
+        foreach (var q in dataset)
+        {
+            var text = q.Text?.Trim();
+            if (string.IsNullOrWhiteSpace(text)) continue;
+            if (!seen.Add(text)) continue; // veri kümesi içinde tekilleştir
+            datasetTotal++;
+            if (existingTexts.Contains(text)) continue; // mevcutsa atla (additive)
+
+            var author = string.IsNullOrWhiteSpace(q.Author) ? null : q.Author.Trim();
+            toInsert.Add(new Quote { Text = text, Author = author });
+        }
+        return (datasetTotal, toInsert);
+    }
+
+    /// <summary>Boş-DB seed yolu için: tüm geçerli/tekil sözleri Quote listesine dönüştürür.</summary>
+    private static List<Quote> BuildQuotesToInsert(List<QuoteSeed> dataset, HashSet<string>? existingTexts)
+        => CountAndBuildQuotes(dataset, existingTexts ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase)).ToInsert;
+
+    private static List<QuoteSeed>? LoadQuotesFromFile()
+    {
+        try
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "Data", "Seed", "quotes.json");
+            if (!File.Exists(path)) return null;
+
+            var json = File.ReadAllText(path);
+            var quotes = JsonSerializer.Deserialize<List<QuoteSeed>>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+            });
+
+            return quotes is { Count: > 0 } ? quotes : null;
+        }
+        catch
+        {
+            // Bozuk/okunamayan dosyada sessizce gömülü listeye düş.
+            return null;
+        }
+    }
+
+    /// <summary>Dosya yüklenemezse kullanılan asgari gömülü liste (atasözleri).</summary>
+    private static List<QuoteSeed> FallbackQuotes() =>
+    [
+        new("Damlaya damlaya göl olur.", "Atasözü"),
+        new("Sabır acıdır, meyvesi tatlıdır.", "Atasözü"),
+        new("Bilmemek ayıp değil, öğrenmemek ayıptır.", "Atasözü"),
+        new("Ne ekersen onu biçersin.", "Atasözü"),
+        new("Tatlı dil yılanı deliğinden çıkarır.", "Atasözü"),
+        new("Hayatta en hakiki mürşit ilimdir.", "Mustafa Kemal Atatürk"),
+        new("Sevelim, sevilelim; bu dünya kimseye kalmaz.", "Yunus Emre"),
+        new("Bilgi paylaşıldıkça çoğalan tek hazinedir.", null),
+    ];
+
+    private sealed record NameSeed(string Name, string Gender, string? Meaning);
+
+    /// <summary>
+    /// Bebek isimlerini Data/Seed/baby-names.json dosyasından idempotent yükler.
+    /// Yalnızca BabyNames tablosu boşken ekler; (Ad, Cinsiyet) çiftine göre
+    /// tekilleştirir. Cinsiyet yalnızca "K" veya "E" olabilir; geçersiz/eksik
+    /// kayıtlar atlanır. Dosya okunamaz/ayrıştırılamazsa küçük bir gömülü liste
+    /// devreye girer.
+    /// </summary>
+    private static void SeedNames(AppDbContext db)
+    {
+        // Tablo boş değilse dokunma (idempotentlik koruması).
+        if (db.BabyNames.Local.Count > 0 || db.BabyNames.Any()) return;
+
+        db.BabyNames.AddRange(BuildNamesToInsert(LoadNamesFromFile() ?? FallbackNames(), existingKeys: null));
+    }
+
+    /// <summary>
+    /// Gömülü bebek ismi veri kümesini ALREADY-POPULATED veritabanına yıkıcı olmadan
+    /// (yalnızca eksikleri ekleyerek) içe aktarır. (Ad, Cinsiyet) çiftine göre
+    /// büyük/küçük harf duyarsız tekilleştirilir; mevcut kayıtlar değiştirilmez/silinmez.
+    /// </summary>
+    public static async Task<ImportResult> ImportNamesAsync(AppDbContext db, CancellationToken ct = default)
+    {
+        var dataset = LoadNamesFromFile() ?? FallbackNames();
+
+        var existing = new HashSet<(string, string)>(
+            (await db.BabyNames.Select(n => new { n.Name, n.Gender }).ToListAsync(ct))
+                .Select(n => (n.Name.Trim().ToLowerInvariant(), n.Gender.Trim().ToUpperInvariant())));
+
+        var (datasetTotal, toInsert) = CountAndBuildNames(dataset, existing);
+        if (toInsert.Count > 0)
+        {
+            db.BabyNames.AddRange(toInsert);
+            await db.SaveChangesAsync(ct);
+        }
+        return new ImportResult(datasetTotal, datasetTotal - toInsert.Count, toInsert.Count);
+    }
+
+    /// <summary>
+    /// Veri kümesindeki geçerli (Ad dolu, Cinsiyet K/E, kendi içinde tekil) isimleri sayar ve
+    /// <paramref name="existingKeys"/> içinde (ad-küçük, cinsiyet-büyük) olmayanlardan eklenecek liste üretir.
+    /// </summary>
+    private static (int DatasetTotal, List<BabyName> ToInsert) CountAndBuildNames(
+        List<NameSeed> dataset, HashSet<(string, string)> existingKeys)
+    {
+        var seen = new HashSet<(string, string)>();
+        var toInsert = new List<BabyName>();
+        var datasetTotal = 0;
+        foreach (var n in dataset)
+        {
+            var name = n.Name?.Trim();
+            var gender = n.Gender?.Trim().ToUpperInvariant();
+            if (string.IsNullOrWhiteSpace(name)) continue;
+            if (gender != "K" && gender != "E") continue;            // yalnızca K/E
+            if (!seen.Add((name.ToLowerInvariant(), gender))) continue; // veri kümesi içinde tekilleştir
+            datasetTotal++;
+            if (existingKeys.Contains((name.ToLowerInvariant(), gender))) continue; // mevcutsa atla (additive)
+
+            var meaning = string.IsNullOrWhiteSpace(n.Meaning) ? null : n.Meaning.Trim();
+            toInsert.Add(new BabyName { Name = name, Gender = gender, Meaning = meaning });
+        }
+        return (datasetTotal, toInsert);
+    }
+
+    /// <summary>Boş-DB seed yolu için: tüm geçerli/tekil isimleri BabyName listesine dönüştürür.</summary>
+    private static List<BabyName> BuildNamesToInsert(List<NameSeed> dataset, HashSet<(string, string)>? existingKeys)
+        => CountAndBuildNames(dataset, existingKeys ?? new HashSet<(string, string)>()).ToInsert;
+
+    private static List<NameSeed>? LoadNamesFromFile()
+    {
+        try
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "Data", "Seed", "baby-names.json");
+            if (!File.Exists(path)) return null;
+
+            var json = File.ReadAllText(path);
+            var names = JsonSerializer.Deserialize<List<NameSeed>>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+            });
+
+            return names is { Count: > 0 } ? names : null;
+        }
+        catch
+        {
+            // Bozuk/okunamayan dosyada sessizce gömülü listeye düş.
+            return null;
+        }
+    }
+
+    /// <summary>Dosya yüklenemezse kullanılan asgari gömülü liste.</summary>
+    private static List<NameSeed> FallbackNames() =>
+    [
+        new("Elif", "K", "Arap alfabesinin ilk harfi; ince, narin"),
+        new("Defne", "K", "Yaprağını dökmeyen güzel kokulu ağaç"),
+        new("Zeynep", "K", "Değerli, güzel kokulu bir ağaç"),
+        new("Duru", "K", "Saf, berrak"),
+        new("Nehir", "K", "Irmak, akarsu"),
+        new("Yusuf", "E", "Allah kat kat artırsın; bir peygamber adı"),
+        new("Yiğit", "E", "Cesur, kahraman, yürekli"),
+        new("Emir", "E", "Bey, komutan; buyruk veren"),
+        new("Demir", "E", "Güçlü, sağlam, dayanıklı"),
+        new("Çınar", "E", "Uzun ömürlü, ulu ağaç"),
+    ];
 }

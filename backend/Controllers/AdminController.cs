@@ -1,6 +1,7 @@
 using BTTakvim.Api.Data;
 using BTTakvim.Api.Models;
 using BTTakvim.Api.Services;
+using BTTakvim.Api.Services.Providers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,12 @@ namespace BTTakvim.Api.Controllers;
 [ApiController]
 [Route("api/admin")]
 [Authorize(Roles = "admin")]
-public class AdminController(AppDbContext db, LeafService leafService) : ControllerBase
+public class AdminController(
+    AppDbContext db,
+    LeafService leafService,
+    IntegrationCallLog integrationLog,
+    IHijriDateProvider hijriProvider,
+    TurkishCalendarService calendar) : ControllerBase
 {
     // ---- Özet (dashboard) ----
 
@@ -25,6 +31,48 @@ public class AdminController(AppDbContext db, LeafService leafService) : Control
         comments = await db.Comments.CountAsync(ct),
         reports = await db.Reactions.CountAsync(r => r.Kind == ReactionKind.Report, ct),
     });
+
+    // ---- Entegrasyon izleme (gelen/giden dış API trafiği) ----
+
+    /// <summary>
+    /// Dış API'lere (Aladhan namaz vakitleri + gToH hicrî) yapılan son çağrıların
+    /// bellek içi kaydı. Yalnızca son ~200 çağrı tutulur; sunucu yeniden başlayınca sıfırlanır.
+    /// </summary>
+    [HttpGet("integration-log")]
+    public IActionResult IntegrationLog([FromQuery] int? n) => Ok(new
+    {
+        summary = integrationLog.Summary(),
+        entries = integrationLog.Recent(n ?? 200),
+    });
+
+    /// <summary>
+    /// Yerel (UmAlQura) hicrî tarihi, Aladhan gToH (dış API) hicrî tarihiyle karşılaştırır.
+    /// Aladhan çağrısı IntegrationCallLog'a kaydedilir (entegrasyon izleme panelinde görünür).
+    /// Yaprak üretimi bundan etkilenmez; bu uçnokta yalnızca kalibrasyon/sürüklenme görünürlüğü
+    /// içindir. <paramref name="date"/> verilmezse İstanbul saatine göre bugün kullanılır.
+    /// </summary>
+    [HttpGet("hijri-check")]
+    public async Task<IActionResult> HijriCheck([FromQuery] string? date, CancellationToken ct)
+    {
+        DateOnly d;
+        if (string.IsNullOrWhiteSpace(date))
+            d = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(3)); // İstanbul (UTC+3)
+        else if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", out d))
+            return BadRequest(new { error = "Tarih biçimi yyyy-MM-dd olmalı." });
+
+        var local = calendar.GetHijri(d);
+        var aladhan = await hijriProvider.GetHijriAsync(d, ct);
+
+        int driftDays = Math.Abs(local.Day - aladhan.Day);
+
+        return Ok(new
+        {
+            date = d.ToString("yyyy-MM-dd"),
+            local = new { local.Day, local.MonthName, local.Year },
+            aladhan = new { aladhan.Day, aladhan.MonthName, aladhan.Year },
+            driftDays,
+        });
+    }
 
     // ---- Yapraklar ----
 
@@ -183,6 +231,137 @@ public class AdminController(AppDbContext db, LeafService leafService) : Control
         var ev = await db.HistoryEvents.FindAsync([id], ct);
         if (ev is null) return NotFound();
         db.HistoryEvents.Remove(ev);
+        await db.SaveChangesAsync(ct);
+        return Ok();
+    }
+
+    // ---- Sözler ----
+
+    [HttpGet("quotes")]
+    public async Task<IActionResult> Quotes(CancellationToken ct) =>
+        Ok(await db.Quotes.OrderByDescending(q => q.Id)
+            .Select(q => new { q.Id, q.Text, q.Author, q.IsActive })
+            .ToListAsync(ct));
+
+    /// <summary>
+    /// Gömülü söz veri kümesini içe aktarır (yıkıcı değil): yalnızca eksik kayıtları ekler,
+    /// mevcutları değiştirmez. { datasetTotal, alreadyPresent, added } döner.
+    /// </summary>
+    [HttpPost("quotes/import")]
+    public async Task<IActionResult> ImportQuotes(CancellationToken ct)
+    {
+        var r = await DbSeeder.ImportQuotesAsync(db, ct);
+        return Ok(new { datasetTotal = r.DatasetTotal, alreadyPresent = r.AlreadyPresent, added = r.Added });
+    }
+
+    public record QuoteRequest(string Text, string? Author, bool IsActive);
+
+    /// <summary>Söz girdisini doğrular: boş metin reddedilir, 1000 karakterle sınırlıdır.</summary>
+    private BadRequestObjectResult? ValidateQuote(QuoteRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.Text))
+            return BadRequest(new { error = "Söz metni boş olamaz." });
+        if (req.Text.Trim().Length > 1000)
+            return BadRequest(new { error = "Söz metni en fazla 1000 karakter olabilir." });
+        return null;
+    }
+
+    [HttpPost("quotes")]
+    public async Task<IActionResult> CreateQuote([FromBody] QuoteRequest req, CancellationToken ct)
+    {
+        if (ValidateQuote(req) is { } err) return err;
+        var quote = new Quote { Text = req.Text.Trim(), Author = req.Author, IsActive = req.IsActive };
+        db.Quotes.Add(quote);
+        await db.SaveChangesAsync(ct);
+        return Ok(new { quote.Id, quote.Text, quote.Author, quote.IsActive });
+    }
+
+    [HttpPut("quotes/{id:int}")]
+    public async Task<IActionResult> UpdateQuote(int id, [FromBody] QuoteRequest req, CancellationToken ct)
+    {
+        if (ValidateQuote(req) is { } err) return err;
+        var quote = await db.Quotes.FindAsync([id], ct);
+        if (quote is null) return NotFound();
+        quote.Text = req.Text.Trim(); quote.Author = req.Author; quote.IsActive = req.IsActive;
+        await db.SaveChangesAsync(ct);
+        return Ok(new { quote.Id, quote.Text, quote.Author, quote.IsActive });
+    }
+
+    [HttpDelete("quotes/{id:int}")]
+    public async Task<IActionResult> DeleteQuote(int id, CancellationToken ct)
+    {
+        var quote = await db.Quotes.FindAsync([id], ct);
+        if (quote is null) return NotFound();
+        db.Quotes.Remove(quote);
+        await db.SaveChangesAsync(ct);
+        return Ok();
+    }
+
+    // ---- Bebek isimleri ----
+
+    [HttpGet("names")]
+    public async Task<IActionResult> Names([FromQuery] string? gender, [FromQuery] string? q, CancellationToken ct)
+    {
+        var query = db.BabyNames.AsQueryable();
+        if (gender is "K" or "E") query = query.Where(n => n.Gender == gender);
+        if (!string.IsNullOrWhiteSpace(q)) query = query.Where(n => EF.Functions.ILike(n.Name, $"%{q}%"));
+        return Ok(await query.OrderByDescending(n => n.Id)
+            .Select(n => new { n.Id, n.Name, n.Gender, n.Meaning, n.IsActive })
+            .ToListAsync(ct));
+    }
+
+    /// <summary>
+    /// Gömülü bebek ismi veri kümesini içe aktarır (yıkıcı değil): yalnızca eksik kayıtları ekler,
+    /// mevcutları değiştirmez. { datasetTotal, alreadyPresent, added } döner.
+    /// </summary>
+    [HttpPost("names/import")]
+    public async Task<IActionResult> ImportNames(CancellationToken ct)
+    {
+        var r = await DbSeeder.ImportNamesAsync(db, ct);
+        return Ok(new { datasetTotal = r.DatasetTotal, alreadyPresent = r.AlreadyPresent, added = r.Added });
+    }
+
+    public record BabyNameRequest(string Name, string Gender, string? Meaning, bool IsActive);
+
+    /// <summary>İsim girdisini doğrular: boş ad reddedilir (100 karakter sınırı), cinsiyet K/E olmalı.</summary>
+    private BadRequestObjectResult? ValidateName(BabyNameRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.Name))
+            return BadRequest(new { error = "İsim boş olamaz." });
+        if (req.Name.Trim().Length > 100)
+            return BadRequest(new { error = "İsim en fazla 100 karakter olabilir." });
+        if (req.Gender is not ("K" or "E"))
+            return BadRequest(new { error = "Cinsiyet K veya E olmalı." });
+        return null;
+    }
+
+    [HttpPost("names")]
+    public async Task<IActionResult> CreateName([FromBody] BabyNameRequest req, CancellationToken ct)
+    {
+        if (ValidateName(req) is { } err) return err;
+        var name = new BabyName { Name = req.Name.Trim(), Gender = req.Gender, Meaning = req.Meaning, IsActive = req.IsActive };
+        db.BabyNames.Add(name);
+        await db.SaveChangesAsync(ct);
+        return Ok(new { name.Id, name.Name, name.Gender, name.Meaning, name.IsActive });
+    }
+
+    [HttpPut("names/{id:int}")]
+    public async Task<IActionResult> UpdateName(int id, [FromBody] BabyNameRequest req, CancellationToken ct)
+    {
+        if (ValidateName(req) is { } err) return err;
+        var name = await db.BabyNames.FindAsync([id], ct);
+        if (name is null) return NotFound();
+        name.Name = req.Name.Trim(); name.Gender = req.Gender; name.Meaning = req.Meaning; name.IsActive = req.IsActive;
+        await db.SaveChangesAsync(ct);
+        return Ok(new { name.Id, name.Name, name.Gender, name.Meaning, name.IsActive });
+    }
+
+    [HttpDelete("names/{id:int}")]
+    public async Task<IActionResult> DeleteName(int id, CancellationToken ct)
+    {
+        var name = await db.BabyNames.FindAsync([id], ct);
+        if (name is null) return NotFound();
+        db.BabyNames.Remove(name);
         await db.SaveChangesAsync(ct);
         return Ok();
     }

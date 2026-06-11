@@ -39,7 +39,8 @@ public class LeafService(
 
     private async Task<CalendarLeaf> GenerateAsync(DateOnly date, CancellationToken ct)
     {
-        var hijri = calendar.GetHijri(date);
+        var hijriDayOffset = await GetHijriDayOffsetAsync(ct);
+        var hijri = calendar.GetHijri(date, hijriDayOffset);
         var rumi = calendar.GetRumi(date);
         var seasonal = calendar.GetSeasonalDay(date);
         var cold = calendar.GetColdPeriod(date);
@@ -66,6 +67,7 @@ public class LeafService(
             ColdPeriodLabel = cold?.Label, ColdPeriodDay = cold?.Day,
             MoonPhaseKey = moon.Key, MoonPhaseName = moon.Name,
             MoonEmoji = moon.Emoji, MoonIllumination = moon.Illumination,
+            MoonSource = moon.Source,
             QuoteText = quoteText, QuoteAuthor = quoteAuthor,
             GirlName = girl?.Name ?? "İzel", GirlNameMeaning = girl?.Meaning,
             BoyName = boy?.Name ?? "Acun", BoyNameMeaning = boy?.Meaning,
@@ -155,6 +157,19 @@ public class LeafService(
         return setting?.Value == "fixed" ? "fixed" : "random";
     }
 
+    /// <summary>
+    /// Etkin hicrî gün-ofseti: önce DB ayarı (<c>hijri_day_offset</c>), yoksa/parse
+    /// edilemezse appsettings (<c>Calendar:HijriDayOffset</c>), o da yoksa 0.
+    /// Ağ çağrısı yapmaz; tek bir küçük tablo okuması.
+    /// </summary>
+    private async Task<int> GetHijriDayOffsetAsync(CancellationToken ct)
+    {
+        var setting = await db.Settings.FindAsync(["hijri_day_offset"], ct);
+        if (setting is not null && int.TryParse(setting.Value, out var offset))
+            return offset;
+        return calendar.ConfiguredHijriDayOffset;
+    }
+
     private async Task<LeafDto> ToDtoAsync(CalendarLeaf leaf, CancellationToken ct)
     {
         var selections = JsonSerializer.Deserialize<List<ContentSelection>>(leaf.ContentSelectionsJson, JsonOpts) ?? [];
@@ -205,7 +220,8 @@ public class LeafService(
                 $"{leaf.RumiDay} {leaf.RumiMonthName} {leaf.RumiYear}"),
             new SeasonalDto(leaf.SeasonalLabel, leaf.SeasonalDay),
             leaf.ColdPeriodLabel is null ? null : new SeasonalDto(leaf.ColdPeriodLabel, leaf.ColdPeriodDay ?? 0),
-            new MoonDto(leaf.MoonPhaseKey, leaf.MoonPhaseName, leaf.MoonEmoji, leaf.MoonIllumination, "mock"),
+            new MoonDto(leaf.MoonPhaseKey, leaf.MoonPhaseName, leaf.MoonEmoji, leaf.MoonIllumination,
+                string.IsNullOrEmpty(leaf.MoonSource) ? "astronomical" : leaf.MoonSource),
             new QuoteDto(leaf.QuoteText, leaf.QuoteAuthor),
             new NamesDto(
                 new NameDto(leaf.GirlName, leaf.GirlNameMeaning),
