@@ -67,6 +67,7 @@ public class LeafService(
             ColdPeriodLabel = cold?.Label, ColdPeriodDay = cold?.Day,
             MoonPhaseKey = moon.Key, MoonPhaseName = moon.Name,
             MoonEmoji = moon.Emoji, MoonIllumination = moon.Illumination,
+            MoonSource = moon.Source,
             QuoteText = quoteText, QuoteAuthor = quoteAuthor,
             GirlName = girl?.Name ?? "İzel", GirlNameMeaning = girl?.Meaning,
             BoyName = boy?.Name ?? "Acun", BoyNameMeaning = boy?.Meaning,
@@ -219,7 +220,8 @@ public class LeafService(
                 $"{leaf.RumiDay} {leaf.RumiMonthName} {leaf.RumiYear}"),
             new SeasonalDto(leaf.SeasonalLabel, leaf.SeasonalDay),
             leaf.ColdPeriodLabel is null ? null : new SeasonalDto(leaf.ColdPeriodLabel, leaf.ColdPeriodDay ?? 0),
-            new MoonDto(leaf.MoonPhaseKey, leaf.MoonPhaseName, leaf.MoonEmoji, leaf.MoonIllumination, "mock"),
+            new MoonDto(leaf.MoonPhaseKey, leaf.MoonPhaseName, leaf.MoonEmoji, leaf.MoonIllumination,
+                string.IsNullOrEmpty(leaf.MoonSource) ? "astronomical" : leaf.MoonSource),
             new QuoteDto(leaf.QuoteText, leaf.QuoteAuthor),
             new NamesDto(
                 new NameDto(leaf.GirlName, leaf.GirlNameMeaning),
