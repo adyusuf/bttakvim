@@ -1,7 +1,7 @@
 /** BTTakvim Web — takvim yaprağı (ön + arka yüz). Kaynak: ui_kits/mobil/leaf.jsx. */
 import {
   Brain, Compass, CookingPot, FlowerLotus, FlowerTulip, ForkKnife,
-  Moon, Mosque, Quotes, Scroll, Sun,
+  Moon, Mosque, Quotes, Scroll,
 } from '@phosphor-icons/react';
 import { Arch, DayNightDial, MiniMonth, MoonPhase, Rosette } from './leaf-bits';
 import { titleCase, TURKISH_MONTHS } from '../lib/dates';

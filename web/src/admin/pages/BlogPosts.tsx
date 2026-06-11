@@ -1,5 +1,5 @@
 import { Pencil, Plus, Trash } from '@phosphor-icons/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { adminApi } from '../api';
 import { Field, Modal, useAsyncAction } from '../ui';
 
@@ -22,8 +22,6 @@ export function BlogPosts() {
   useEffect(() => { adminApi.get<BlogCategory[]>('/api/admin/blog-categories').then(setCats).catch(() => {}); }, []);
   const load = () => adminApi.get<Post[]>('/api/admin/blog-posts').then(setPosts).catch(() => {});
   useEffect(() => { load(); }, []);
-
-  const catName = useMemo(() => Object.fromEntries(cats.map((c) => [c.id, c.name])), [cats]);
 
   const save = async () => {
     if (!editing) return;

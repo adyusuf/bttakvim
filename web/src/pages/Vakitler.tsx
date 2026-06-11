@@ -1,5 +1,5 @@
 import {
-  Cloud, CloudSun, Compass, MapPin, Moon, MoonStars, Mosque, Sun, SunHorizon,
+  CloudSun, Compass, MapPin, Moon, MoonStars, Mosque, Sun, SunHorizon,
   type Icon as PhosphorIcon,
 } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
