@@ -31,7 +31,14 @@ builder.Services.AddScoped<LeafService>();
 builder.Services.AddScoped<AuthService>();
 
 // Admin JWT kimlik doğrulama
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "bttakvim-dev-secret-key-change-in-production-please-32+";
+var jwtKey = builder.Configuration["Jwt:Key"];
+if (string.IsNullOrWhiteSpace(jwtKey))
+{
+    if (builder.Environment.IsProduction())
+        throw new InvalidOperationException(
+            "Jwt:Key (ortam değişkeni Jwt__Key) üretimde zorunludur ve en az 32 karakter olmalıdır.");
+    jwtKey = "bttakvim-dev-secret-key-change-in-production-please-32+";
+}
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(opt =>
     {
