@@ -187,6 +187,93 @@ public class AdminController(AppDbContext db, LeafService leafService) : Control
         return Ok();
     }
 
+    // ---- Sözler ----
+
+    [HttpGet("quotes")]
+    public async Task<IActionResult> Quotes(CancellationToken ct) =>
+        Ok(await db.Quotes.OrderByDescending(q => q.Id)
+            .Select(q => new { q.Id, q.Text, q.Author, q.IsActive })
+            .ToListAsync(ct));
+
+    public record QuoteRequest(string Text, string? Author, bool IsActive);
+
+    [HttpPost("quotes")]
+    public async Task<IActionResult> CreateQuote([FromBody] QuoteRequest req, CancellationToken ct)
+    {
+        var quote = new Quote { Text = req.Text, Author = req.Author, IsActive = req.IsActive };
+        db.Quotes.Add(quote);
+        await db.SaveChangesAsync(ct);
+        return Ok(new { quote.Id, quote.Text, quote.Author, quote.IsActive });
+    }
+
+    [HttpPut("quotes/{id:int}")]
+    public async Task<IActionResult> UpdateQuote(int id, [FromBody] QuoteRequest req, CancellationToken ct)
+    {
+        var quote = await db.Quotes.FindAsync([id], ct);
+        if (quote is null) return NotFound();
+        quote.Text = req.Text; quote.Author = req.Author; quote.IsActive = req.IsActive;
+        await db.SaveChangesAsync(ct);
+        return Ok(new { quote.Id, quote.Text, quote.Author, quote.IsActive });
+    }
+
+    [HttpDelete("quotes/{id:int}")]
+    public async Task<IActionResult> DeleteQuote(int id, CancellationToken ct)
+    {
+        var quote = await db.Quotes.FindAsync([id], ct);
+        if (quote is null) return NotFound();
+        db.Quotes.Remove(quote);
+        await db.SaveChangesAsync(ct);
+        return Ok();
+    }
+
+    // ---- Bebek isimleri ----
+
+    [HttpGet("names")]
+    public async Task<IActionResult> Names([FromQuery] string? gender, [FromQuery] string? q, CancellationToken ct)
+    {
+        var query = db.BabyNames.AsQueryable();
+        if (gender is "K" or "E") query = query.Where(n => n.Gender == gender);
+        if (!string.IsNullOrWhiteSpace(q)) query = query.Where(n => n.Name.Contains(q));
+        return Ok(await query.OrderByDescending(n => n.Id)
+            .Select(n => new { n.Id, n.Name, n.Gender, n.Meaning, n.IsActive })
+            .ToListAsync(ct));
+    }
+
+    public record BabyNameRequest(string Name, string Gender, string? Meaning, bool IsActive);
+
+    [HttpPost("names")]
+    public async Task<IActionResult> CreateName([FromBody] BabyNameRequest req, CancellationToken ct)
+    {
+        if (req.Gender is not ("K" or "E"))
+            return BadRequest(new { error = "Cinsiyet K veya E olmalı." });
+        var name = new BabyName { Name = req.Name, Gender = req.Gender, Meaning = req.Meaning, IsActive = req.IsActive };
+        db.BabyNames.Add(name);
+        await db.SaveChangesAsync(ct);
+        return Ok(new { name.Id, name.Name, name.Gender, name.Meaning, name.IsActive });
+    }
+
+    [HttpPut("names/{id:int}")]
+    public async Task<IActionResult> UpdateName(int id, [FromBody] BabyNameRequest req, CancellationToken ct)
+    {
+        if (req.Gender is not ("K" or "E"))
+            return BadRequest(new { error = "Cinsiyet K veya E olmalı." });
+        var name = await db.BabyNames.FindAsync([id], ct);
+        if (name is null) return NotFound();
+        name.Name = req.Name; name.Gender = req.Gender; name.Meaning = req.Meaning; name.IsActive = req.IsActive;
+        await db.SaveChangesAsync(ct);
+        return Ok(new { name.Id, name.Name, name.Gender, name.Meaning, name.IsActive });
+    }
+
+    [HttpDelete("names/{id:int}")]
+    public async Task<IActionResult> DeleteName(int id, CancellationToken ct)
+    {
+        var name = await db.BabyNames.FindAsync([id], ct);
+        if (name is null) return NotFound();
+        db.BabyNames.Remove(name);
+        await db.SaveChangesAsync(ct);
+        return Ok();
+    }
+
     // ---- Blog kategorileri ----
 
     [HttpGet("blog-categories")]
