@@ -18,7 +18,14 @@ public static class DbSeeder
         db.Settings.AddRange(
             new AppSetting { Key = "content_mode", Value = "random" }, // random | fixed
             new AppSetting { Key = "moon_provider", Value = "mock" },
-            new AppSetting { Key = "prayer_provider", Value = "mock-diyanet" });
+            new AppSetting { Key = "prayer_provider", Value = "mock-diyanet" },
+            // ---- Entegrasyon ayarları (admin panelinden düzenlenebilir) ----
+            // Hicrî gün-ofseti: UmAlQura hesabını Diyanet ilanına ±gün hizalar (yedek: appsettings Calendar:HijriDayOffset, ardından 0).
+            new AppSetting { Key = "hijri_day_offset", Value = "0" },
+            // Namaz vakti varsayılanları: istemci parametre göndermezse kullanılır (istemci değeri yine de geçersiz kılar).
+            new AppSetting { Key = "prayer_default_method", Value = "13" },   // 13 = Diyanet
+            new AppSetting { Key = "prayer_default_school", Value = "0" },    // 0 = Şâfiî/standart, 1 = Hanefî
+            new AppSetting { Key = "prayer_default_tune", Value = "0,0,0,0,0,0" }); // imsak,gunes,ogle,ikindi,aksam,yatsi
 
         // ---- İçerik kategorileri ----
         var categories = new Dictionary<string, ContentCategory>();

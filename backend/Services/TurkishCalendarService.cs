@@ -45,12 +45,26 @@ public class TurkishCalendarService(IConfiguration configuration)
     public static string WeekdayName(DateOnly date) => TurkishDays[(int)date.DayOfWeek];
 
     /// <summary>
-    /// Yerel (UmAlQura) hicrî tarih + yapılandırılmış gün-ofseti. Çevrimdışı,
-    /// deterministik ve daima kullanılabilir; yaprak üretiminin esas kaynağıdır.
+    /// appsettings (<c>Calendar:HijriDayOffset</c>) kaynaklı varsayılan gün-ofseti.
+    /// Artık esas kaynak DB ayarıdır (<c>hijri_day_offset</c>); bu yalnızca yedektir.
     /// </summary>
-    public HijriDate GetHijri(DateOnly date)
+    public int ConfiguredHijriDayOffset => _hijriDayOffset;
+
+    /// <summary>
+    /// Yerel (UmAlQura) hicrî tarih. Gün-ofseti appsettings'ten alınır
+    /// (<see cref="ConfiguredHijriDayOffset"/>). Çağıran açık bir ofset
+    /// belirleyebilir (DB ayarı için) — bkz. aşırı yükleme.
+    /// </summary>
+    public HijriDate GetHijri(DateOnly date) => GetHijri(date, _hijriDayOffset);
+
+    /// <summary>
+    /// Yerel (UmAlQura) hicrî tarih + açık gün-ofseti. Servis durumsuz (singleton)
+    /// kalır; ofset her çağrıda dışarıdan verilir (DB ayarı vb.). Çevrimdışı ve
+    /// deterministik; yaprak üretiminin esas kaynağıdır.
+    /// </summary>
+    public HijriDate GetHijri(DateOnly date, int dayOffset)
     {
-        var dt = date.AddDays(_hijriDayOffset).ToDateTime(TimeOnly.MinValue);
+        var dt = date.AddDays(dayOffset).ToDateTime(TimeOnly.MinValue);
         return new HijriDate(
             Hijri.GetDayOfMonth(dt),
             HijriMonths[Hijri.GetMonth(dt) - 1],

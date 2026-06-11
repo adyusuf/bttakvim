@@ -39,7 +39,8 @@ public class LeafService(
 
     private async Task<CalendarLeaf> GenerateAsync(DateOnly date, CancellationToken ct)
     {
-        var hijri = calendar.GetHijri(date);
+        var hijriDayOffset = await GetHijriDayOffsetAsync(ct);
+        var hijri = calendar.GetHijri(date, hijriDayOffset);
         var rumi = calendar.GetRumi(date);
         var seasonal = calendar.GetSeasonalDay(date);
         var cold = calendar.GetColdPeriod(date);
@@ -153,6 +154,19 @@ public class LeafService(
     {
         var setting = await db.Settings.FindAsync(["content_mode"], ct);
         return setting?.Value == "fixed" ? "fixed" : "random";
+    }
+
+    /// <summary>
+    /// Etkin hicrî gün-ofseti: önce DB ayarı (<c>hijri_day_offset</c>), yoksa/parse
+    /// edilemezse appsettings (<c>Calendar:HijriDayOffset</c>), o da yoksa 0.
+    /// Ağ çağrısı yapmaz; tek bir küçük tablo okuması.
+    /// </summary>
+    private async Task<int> GetHijriDayOffsetAsync(CancellationToken ct)
+    {
+        var setting = await db.Settings.FindAsync(["hijri_day_offset"], ct);
+        if (setting is not null && int.TryParse(setting.Value, out var offset))
+            return offset;
+        return calendar.ConfiguredHijriDayOffset;
     }
 
     private async Task<LeafDto> ToDtoAsync(CalendarLeaf leaf, CancellationToken ct)

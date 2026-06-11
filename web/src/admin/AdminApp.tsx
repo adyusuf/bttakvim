@@ -1,5 +1,5 @@
 import {
-  Baby, ChartBar, FileText, Gear, Newspaper, Quotes, Scroll, SignOut, Stack, Tag, WarningCircle,
+  Baby, ChartBar, FileText, Gear, Newspaper, PlugsConnected, Quotes, Scroll, SignOut, Stack, Tag, WarningCircle,
 } from '@phosphor-icons/react';
 import { NavLink, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { useAdminAuth } from './auth-context';
@@ -14,6 +14,7 @@ import { BlogPosts } from './pages/BlogPosts';
 import { Leaves } from './pages/Leaves';
 import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
+import { Integrations } from './pages/Integrations';
 import './admin.css';
 
 const NAV = [
@@ -26,6 +27,7 @@ const NAV = [
   { to: '/admin/blog', label: 'Blog Yazıları', Icon: Newspaper },
   { to: '/admin/yapraklar', label: 'Yapraklar', Icon: FileText },
   { to: '/admin/raporlar', label: 'Moderasyon', Icon: WarningCircle },
+  { to: '/admin/entegrasyonlar', label: 'Entegrasyonlar', Icon: PlugsConnected },
   { to: '/admin/ayarlar', label: 'Ayarlar', Icon: Gear },
 ];
 
@@ -65,6 +67,7 @@ function Shell() {
           <Route path="blog" element={<BlogPosts />} />
           <Route path="yapraklar" element={<Leaves />} />
           <Route path="raporlar" element={<Reports />} />
+          <Route path="entegrasyonlar" element={<Integrations />} />
           <Route path="ayarlar" element={<Settings />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
