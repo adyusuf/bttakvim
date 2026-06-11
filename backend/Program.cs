@@ -17,7 +17,8 @@ builder.Services.AddControllers().AddJsonOptions(o =>
     o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
-// Takvim hesapları ve sağlayıcılar (mock-first; Faz 5'te gerçek servislerle değiştirilecek)
+// Takvim hesapları ve sağlayıcılar: namaz Aladhan API (yerel yedek), hicrî Aladhan gToH (yerel yedek),
+// ay bilimsel hesap (Meeus), söz/isim veritabanından. Tümü arayüz arkasında soyut.
 builder.Services.AddSingleton<TurkishCalendarService>();
 builder.Services.AddSingleton<IMoonPhaseProvider, AstronomicalMoonPhaseProvider>();
 builder.Services.AddHttpClient();

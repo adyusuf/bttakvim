@@ -50,14 +50,21 @@ export function Settings() {
 
       <div className="adm-section-rule"><span>Sağlayıcılar</span><i /></div>
       <table className="adm-table">
-        <thead><tr><th>Sağlayıcı</th><th>Değer</th><th>Durum</th></tr></thead>
+        <thead><tr><th>Sağlayıcı</th><th>Kaynak</th><th>Durum</th></tr></thead>
         <tbody>
-          <tr><td className="adm-strong">Ay Evresi</td><td><code>{settings.moon_provider ?? 'mock'}</code></td><td><span className="adm-pill off">Mock</span></td></tr>
-          <tr><td className="adm-strong">Namaz Vakitleri</td><td><code>{settings.prayer_provider ?? 'mock-diyanet'}</code></td><td><span className="adm-pill off">Mock · Diyanet bağlanacak</span></td></tr>
+          <tr><td className="adm-strong">Namaz Vakitleri</td><td><code>aladhan · method=13 (Diyanet)</code></td><td><span className="adm-pill ok">Aladhan API · yerel yedek</span></td></tr>
+          <tr><td className="adm-strong">Hicrî Tarih</td><td><code>UmAlQura + Aladhan gToH</code></td><td><span className="adm-pill ok">Yerel · doğrulamalı</span></td></tr>
+          <tr><td className="adm-strong">Ay Evresi</td><td><code>astronomical (Meeus)</code></td><td><span className="adm-pill ok">Bilimsel hesap</span></td></tr>
+          <tr><td className="adm-strong">Günün Sözü</td><td><code>PostgreSQL</code></td><td><span className="adm-pill ok">Veritabanı</span></td></tr>
+          <tr><td className="adm-strong">İsimler</td><td><code>PostgreSQL</code></td><td><span className="adm-pill ok">Veritabanı</span></td></tr>
         </tbody>
       </table>
       <p className="adm-hint" style={{ marginTop: 12 }}>
-        Sağlayıcılar arayüz arkasında soyutlanmıştır; gerçek servisler (Diyanet, bilimsel ay API'si) Faz 5'te bağlanacak.
+        Sağlayıcılar arayüz arkasında soyutlanmıştır. Namaz vakitleri Aladhan API'den (method=13, Diyanet açıları),
+        hicrî tarih Aladhan gToH ile doğrulanan yerel UmAlQura'dan, ay evresi yerel bilimsel hesaptan (Meeus),
+        söz ve isimler veritabanından gelir. Aladhan'a ulaşılamazsa otomatik yerel hesaba düşülür.
+        Varsayılan namaz yöntemi ve hicrî gün ofseti <b>Entegrasyonlar</b> sayfasından, canlı dış API trafiği
+        ise <b>Entegrasyon İzleme</b> sayfasından yönetilir/izlenir.
       </p>
       {saved ? <p className="adm-hint" style={{ marginTop: 10, color: 'var(--green-0)' }}>Kaydedildi ✓</p> : null}
     </>
