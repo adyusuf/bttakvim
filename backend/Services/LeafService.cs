@@ -206,6 +206,17 @@ public class LeafService(
             c => c.TargetType == TargetType.Leaf && c.TargetId == leaf.Id &&
                  c.Status == CommentStatus.Visible, ct);
 
+        // İçerik (söz, isim, özel gün, geçmişte bugün, vb.) yaprağa sabitlenmiştir ve değişmez.
+        // Ancak HESAPLANAN alanlar (hicrî/rûmî tarih, mevsim, ay evresi) tarih + güncel ayarların
+        // saf fonksiyonudur; admin ay/takvim/hicrî ayarlarını değiştirirse mevcut yapraklara da
+        // yansısın diye OKUMA anında yeniden hesaplanır (saklanan kolonlar artık yedek/geçmiştir).
+        var hijriOffset = await GetHijriDayOffsetAsync(ct);
+        var hijri = calendar.GetHijri(leaf.Date, hijriOffset);
+        var rumi = calendar.GetRumi(leaf.Date);
+        var seasonal = calendar.GetSeasonalDay(leaf.Date);
+        var cold = calendar.GetColdPeriod(leaf.Date);
+        var moon = moonProvider.GetPhase(leaf.Date);
+
         return new LeafDto(
             leaf.Id,
             leaf.Date.ToString("yyyy-MM-dd"),
@@ -214,14 +225,13 @@ public class LeafService(
             leaf.Date.Year,
             TurkishCalendarService.WeekdayName(leaf.Date),
             leaf.Date.DayOfYear,
-            new DatePartDto(leaf.HijriDay, leaf.HijriMonthName, leaf.HijriYear,
-                $"{leaf.HijriDay} {leaf.HijriMonthName} {leaf.HijriYear}"),
-            new DatePartDto(leaf.RumiDay, leaf.RumiMonthName, leaf.RumiYear,
-                $"{leaf.RumiDay} {leaf.RumiMonthName} {leaf.RumiYear}"),
-            new SeasonalDto(leaf.SeasonalLabel, leaf.SeasonalDay),
-            leaf.ColdPeriodLabel is null ? null : new SeasonalDto(leaf.ColdPeriodLabel, leaf.ColdPeriodDay ?? 0),
-            new MoonDto(leaf.MoonPhaseKey, leaf.MoonPhaseName, leaf.MoonEmoji, leaf.MoonIllumination,
-                string.IsNullOrEmpty(leaf.MoonSource) ? "astronomical" : leaf.MoonSource),
+            new DatePartDto(hijri.Day, hijri.MonthName, hijri.Year,
+                $"{hijri.Day} {hijri.MonthName} {hijri.Year}"),
+            new DatePartDto(rumi.Day, rumi.MonthName, rumi.Year,
+                $"{rumi.Day} {rumi.MonthName} {rumi.Year}"),
+            new SeasonalDto(seasonal.Label, seasonal.Day),
+            cold is null ? null : new SeasonalDto(cold.Label, cold.Day),
+            new MoonDto(moon.Key, moon.Name, moon.Emoji, moon.Illumination, moon.Source),
             new QuoteDto(leaf.QuoteText, leaf.QuoteAuthor),
             new NamesDto(
                 new NameDto(leaf.GirlName, leaf.GirlNameMeaning),
