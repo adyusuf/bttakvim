@@ -148,34 +148,6 @@ img { max-width: 100%; }
 .web-vakit-table tbody tr:hover { background: var(--surface-sunken); }
 .web-vakit-table tbody tr.on { background: var(--prayer-soft); }
 
-/* ===== HESAPLAMA AYARLARI ===== */
-.web-hesap { border: 1px solid var(--rule); border-radius: var(--radius-md); background: var(--surface-card); margin: 0 0 24px; overflow: hidden; }
-.web-hesap-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 13px 18px; background: transparent; border: none; cursor: pointer; color: var(--ink-0); }
-.web-hesap-toggle:hover { background: var(--surface-sunken); }
-.web-hesap-toggle > span { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-sans); font-size: 13px; font-weight: 700; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--text-secondary); }
-.web-hesap-body { display: flex; flex-direction: column; gap: 18px; padding: 6px 18px 18px; border-top: 1px solid var(--rule); }
-.web-hesap-field { display: flex; flex-direction: column; gap: 8px; }
-.web-hesap-lbl { font-family: var(--font-sans); font-size: 11px; font-weight: 700; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--text-muted); }
-.web-hesap-select { width: 100%; padding: 10px 12px; border: 1px solid var(--rule-strong); border-radius: var(--radius-sm); background: var(--surface-app); color: var(--ink-0); font-family: var(--font-serif); font-size: 14.5px; cursor: pointer; }
-.web-hesap-select:focus-visible { outline: 2px solid var(--prayer); outline-offset: 1px; }
-.web-hesap-seg { display: inline-flex; gap: 6px; flex-wrap: wrap; }
-.web-hesap-seg-btn { padding: 8px 14px; border-radius: var(--radius-pill); border: 1px solid var(--rule-strong); background: transparent; cursor: pointer; font-family: var(--font-sans); font-size: 13px; font-weight: 600; color: var(--text-secondary); }
-.web-hesap-seg-btn:hover { border-color: var(--prayer); }
-.web-hesap-seg-btn.on { background: var(--prayer); border-color: var(--prayer); color: var(--text-on-dark); }
-.web-hesap-tune { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.web-hesap-step { display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid var(--rule); border-radius: var(--radius-sm); background: var(--surface-app); }
-.web-hesap-step-ad { font-family: var(--font-sans); font-size: 12px; font-weight: 600; color: var(--text-secondary); }
-.web-hesap-step-ctrl { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-.web-hesap-step-btn { width: 28px; height: 28px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid var(--rule-strong); border-radius: var(--radius-xs); background: var(--surface-card); color: var(--ink-1); cursor: pointer; }
-.web-hesap-step-btn:hover:not(:disabled) { border-color: var(--prayer); color: var(--prayer); }
-.web-hesap-step-btn:disabled { opacity: .4; cursor: not-allowed; }
-.web-hesap-step-val { font-family: var(--font-display); font-weight: 700; font-size: 16px; color: var(--ink-0); min-width: 34px; text-align: center; }
-.web-hesap-foot { display: flex; justify-content: flex-end; }
-.web-hesap-reset { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: var(--radius-pill); border: 1px solid var(--rule-strong); background: transparent; cursor: pointer; font-family: var(--font-sans); font-size: 13px; font-weight: 700; color: var(--ink-0); }
-.web-hesap-reset:hover:not(:disabled) { background: var(--surface-sunken); }
-.web-hesap-reset:disabled { opacity: .4; cursor: not-allowed; }
-@media (max-width: 540px) { .web-hesap-tune { grid-template-columns: repeat(2, 1fr); } }
-
 /* ===== SEARCH OVERLAY ===== */
 .web-search-ov { position: fixed; inset: 0; z-index: 80; background: rgba(20,18,12,.42); backdrop-filter: blur(3px); display: flex; align-items: flex-start; justify-content: center; padding-top: 12vh; }
 .web-search-box { width: min(620px, 92vw); background: var(--surface-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-pop); overflow: hidden; border: 1px solid var(--rule); }

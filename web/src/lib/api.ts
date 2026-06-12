@@ -81,19 +81,8 @@ export const createForumTopic = (body: { title: string; body: string; authorName
 
 export const fetchLeaf = (dateIso: string) => get<Leaf>(`/api/leaves/${dateIso}`);
 
-export type PrayerCalcPrefs = {
-  method: number;
-  school: 0 | 1;
-  tune: { imsak: number; gunes: number; ogle: number; ikindi: number; aksam: number; yatsi: number };
-};
-
-export function fetchPrayerTimes(dateIso: string, citySlug: string, calc?: PrayerCalcPrefs) {
-  let qs = `/api/prayer-times?date=${dateIso}&city=${encodeURIComponent(citySlug)}`;
-  if (calc) {
-    const tune = [calc.tune.imsak, calc.tune.gunes, calc.tune.ogle, calc.tune.ikindi, calc.tune.aksam, calc.tune.yatsi].join(',');
-    qs += `&method=${calc.method}&school=${calc.school}&tune=${encodeURIComponent(tune)}`;
-  }
-  return get<PrayerTimes>(qs);
+export function fetchPrayerTimes(dateIso: string, citySlug: string) {
+  return get<PrayerTimes>(`/api/prayer-times?date=${dateIso}&city=${encodeURIComponent(citySlug)}`);
 }
 
 export const fetchCities = () => get<CityRef[]>('/api/prayer-times/cities');
